@@ -1,0 +1,4 @@
+﻿s_no,first_name,last_name,designation,company_name,primary_contact_number,secondary_contact_number,email,status,address1,address2,taluka,village,zipcode,city,state,country,type
+1,a,b,test,test,1234567890,,abc@gmail.com,TRUE,test,test,dfg,gff,434,ghgf,fghg,ggj,contact
+2,q,e,dg,dgd,5676656556,,fg@gmail.com,TRUE,fgd,dff,fh,gh,646,hg,gj,ghj,lead
+3,fg,fg,f,fd,6565555455,,fgs@gmail.com,FALSE,gfdf,fhf,fgh,fg,646,gg,gg,hgh,customer
