@@ -189,6 +189,7 @@ const templateList=async(req,res)=>{
         .skip(startIndex)
         .limit(limit)
         .exec();
+        
       result.rowsPerPage = limit;
       result.data = result.data.map((lst) => {
         const {_doc: details} = lst;
@@ -197,7 +198,9 @@ const templateList=async(req,res)=>{
             // imageUrl: path.join('http://', req.get('host'), 'image', details.image)
         };
       })
-      return res.send({ msg: "Posts Fetched successfully", data: result});
+      const msgPending = await Template.find({template_created_for:'sms',is_send:1}).countDocuments();
+    const whatsppPending = await Template.find({template_created_for:'whatsApp',is_send:1}).countDocuments();
+      return res.send({ msg: "Posts Fetched successfully", data: result,msgPending:msgPending,whatsppPending:whatsppPending});
        
     }
 

@@ -222,12 +222,15 @@ const messageSend=async(req,res)=>{
         .skip(startIndex)
         .limit(limit)
         .exec();
-
+        
+        
         
       result.rowsPerPage = limit;
       return res.send({
          msg: "Posts Fetched successfully", 
-         data: result});
+         data: result,
+        
+        });
 
     }
 

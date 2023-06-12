@@ -204,12 +204,17 @@ const leadList=async(req,res)=>{
         }
         
         var businessFilters=[];
+        var businessFilters=[];
         var leadStatusFilters=[];
+        var salesFilters=[];
         if(req.query.businessFilters){
             businessFilters=req.query.businessFilters.split(',');            
         }
         if(req.query.leadStatusFilters){
             leadStatusFilters=req.query.leadStatusFilters.split(',');            
+        }
+        if(req.query.salesFilters){
+            salesFilters=req.query.salesFilters.split(',');            
         }
         
         const query = {};
@@ -221,8 +226,11 @@ const leadList=async(req,res)=>{
             query.business_opportunity = { $in: businessFilters }
         } 
         if (leadStatusFilters.length > 0) {
-            query.status = { $in: leadStatusFilters }
+            query.leadStatus = { $in: leadStatusFilters }
         } 
+        if (salesFilters.length > 0) {
+            query.sales_phase = { $in: salesFilters }
+        }
 
         if(req.query.daysFilter){
             var lastWeek = new Date();
@@ -264,39 +272,63 @@ const leadList=async(req,res)=>{
         .skip(startIndex)
         .limit(limit)
         .exec();
-        const permissionList = await Promise.all(
+        const leadLists = await Promise.all(
+          
             result.data?.map(async (lst) => {
-              let sales = await Task.find({
-                selected_list: lst._id,
-              }) 
-                .exec();
-              console.log(sales)
-                // let tasks = await Task.find({
-                //     selected_list: lst._id,
-                //   }).exec();
-                //   const taskAssignList = []
-                //   tasks = tasks.map((task) => {
-                //     task.selected_list.map((selected_contact_list) => {
-                //       ContactManagement.findById({
-                //         _id: selected_contact_list,
-                //       }).exec().then((result)=>{
-                //         if(result){
-                //           taskAssignList.push(result.first_name);
-                //         }
-                //       });
-                //     })
-                //   });
-      
+                const leadStatusList= []
+                const salesPhaseList = []
+                  let tasks = await Task.find({
+                    selected_list: lst._id,
+                    
+                  }).populate('sales_phase').exec()
+                 .then((result)=>{
+                     for(i=0;i<result.length;i++)
+                        {
+                          if(result[i].lead_status===1){
+                          leadStatusList.push("Cold Lead");
+                          }else if(result[i].lead_status===2){
+                            leadStatusList.push("Warm Lead");
+                          }else if(result[i].lead_status===3){
+                            leadStatusList.push("Hot Lead");
+                          }
+                          for(j=0;j<result[i].sales_phase.length;j++){
+                          salesPhaseList.push(result[i].sales_phase[j].name);
+                          }
+                        }
+                        
+                      });
+                      
+              
+                  
+                  const {_doc: leadList} = lst;
               
               return {
-                // ...staffDetails,
-                // taskAssigned: taskAssignList
-               
+                ...leadList,
+                leadStatus: leadStatusList.join(', '),
+                sales_phase: salesPhaseList.join(', '),
               };
             })
           );
+          let totcold = await Task.find({
+            add_task_for:'lead',
+            lead_status:1
+            
+          }).countDocuments()
+       
+          let totwarm = await Task.find({
+            add_task_for:'lead',
+            lead_status:2
+            
+          }).countDocuments()
+
+          let tothot = await Task.find({
+            add_task_for:'lead',
+            lead_status:3
+            
+          }).countDocuments()
+                
       result.rowsPerPage = limit;
-      return res.send({ msg: "Posts Fetched successfully", data: result});
+      return res.send({ msg: "Posts Fetched successfully",  data: { ...result, data: leadLists},totcold:totcold,totwarm:totwarm,tothot:tothot});
        
     }
 

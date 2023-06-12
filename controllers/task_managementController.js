@@ -391,8 +391,21 @@ const addnextAction=async(req,res)=>{
                         _id: req.body._id
                     }, {
                     $set: {
+                        sales_phase:req.body.sales_phase,
+                        lead_status:selectedPhase.name !=='Initial Contact' ? Number(req.body.level_of_urgency) : 1,
                         task_status: req.body.task_completed === '1' ? 3 : 2,
                         task_completed: req.body.task_completed === '1' ? 1 : 0,
+                        action: req.body.action,
+                        action_date:req.body.action_date,
+                        remarks: req.body.remarks,
+                        assign_task_to: req.body.assign_task_to,
+                        is_completed:req.body.is_completed,
+                        selected_list: req.body.selected_list,
+                        next_action:1,
+                        note:req.body.note,
+                        reason_for_dealLost:req.body.reason_for_dealLost,
+                        task_completed:req.body.task_completed
+                       
                     }
                 })
                 const taskData = await task.save();
@@ -576,7 +589,7 @@ const taskList = async (req, res) => {
             .skip(startIndex)
             .limit(limit)
             .exec();
-        // let taskHistory = await TaskHistory.find()
+       
 
         //     .exec();
        
@@ -584,25 +597,28 @@ const taskList = async (req, res) => {
             // console.log('data', data);
             let query;
             if (data && data.add_task_for && data.add_task_for === 'customer') {
-                query = Customer.find({ _id: data.selected_list }).populate('service_offered group')
+                query = ContactManagement.find({ _id: data.selected_list }).populate('service_offered group')
             }
             if (data && data.add_task_for && data.add_task_for === 'contact') {
-                query = Contact.find({ _id: data.selected_list }).populate('group')
+                query = ContactManagement.find({ _id: data.selected_list }).populate('group')
             }
             if (data && data.add_task_for && data.add_task_for === 'lead') {
-                query = Lead.find({ _id: data.selected_list }).populate('business_opportunity group')
+                query = ContactManagement.find({ _id: data.selected_list }).populate('business_opportunity group')
             }
 
             // console.log('query', query);
+            let taskHistory = await TaskHistory.find({task_id:data._id})
 
             let selected_list = query ? query.exec() : [];
             const { _doc: _result } = data;
             // console.log(_result);
+
+           
            
             return {
                 ..._result,
                 
-                // taskHistory,
+                taskHistory,
                 // task_status:taskHistory[0].task_status,
                 action: _result.action[0].action,
                 assign_task_to: {
@@ -610,13 +626,19 @@ const taskList = async (req, res) => {
                     fullName: _result.assign_task_to.first_name + ' ' + _result.assign_task_to.last_name
                 },
                 sales_phase:(_result.sales_phase && _result.sales_phase.length > 0) ? _result.sales_phase[0].name : {},
-                selected_list: selected_list && selected_list.length > 0 ? selected_list[0] : {}
+                selected_list: selected_list && selected_list.length > 0 ? selected_list[0] : {},
+               
             }
 
         }))
+
+        const newData = await Task.find({task_status:1}).countDocuments();
+        const progressData = await Task.find({task_status:2}).countDocuments();
+        const completeData = await Task.find({task_status:2}).countDocuments();
         
         result.rowsPerPage = limit;
-        return res.send({ msg: "Posts Fetched successfully", data: { ...result, data: list} });
+        return res.send({ msg: "Posts Fetched successfully", data: { ...result, data: list, newData:newData, progressData:progressData,
+            completeData:completeData} });
 
     }
 
@@ -707,7 +729,7 @@ const updateTask = async (req, res) => {
                     action_date: req.body.action_date,
                     remarks: req.body.remarks,
                     assign_task_to: req.body.assign_task_to,
-                    lead_status:selectedPhase.name !=='Initial Contact' ? Number(req.body.level_of_urgency) : 1,
+                    // lead_status:selectedPhase.name !=='Initial Contact' ? Number(req.body.level_of_urgency) : 1,
                     budget: req.body.budget,
                     client_firstName: req.body.client_firstName,
                     client_lastName: req.body.client_lastName,
