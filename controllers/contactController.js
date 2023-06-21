@@ -2,6 +2,7 @@
 const Group = require('../models/tbl_group');
 const Contact = require('../models/tbl_contacts');
 const randomstring = require('randomstring');
+const GroupContact=require('../models/tbl_groupContact');
 const config = require("../config/config");
 // const nodemailer=require('nodemailer');
 const jwt = require('jsonwebtoken');
@@ -78,8 +79,8 @@ const addContact = async (req, res) => {
             type: req.body.type
 
         })
-
         const userData = await contact.save()
+        
         .then(async (userData) => {
             // console.log("userData", userData);
             if(userData.group && userData.group.length>0){
@@ -91,23 +92,14 @@ const addContact = async (req, res) => {
                    
                 })
                     const sendMembers = await all.save()
+                    
+                    
+                const groupCountData = await Group.findById({ _id: req.body.group[i] })
+                const count = groupCountData.count + 1;
+                const userData1 = await Group.findByIdAndUpdate({ _id: req.body.group[i] }, { $set: { count: count } });
         }
     }
 })
-        // }).then(async (userData) => {
-        //     for (var i = 0; i < userData.group.length; i++) {
-        //         const all = new ContactGroup({
-        //             contact_id: userData._id,
-        //             group_id: userData.group[i]
-
-        //         })
-        //         const historyData = await all.save()
-        //         // console.log(historyData)
-        //         const groupCountData = await Group.findById({ _id: req.body.group[i] })
-        //         const count = groupCountData.count + 1;
-        //         const userData1 = await Group.findByIdAndUpdate({ _id: req.body.group[i] }, { $set: { count: count } });
-        //     }
-        // });
         if (userData) {
             res.status(200).send({ success: true, data: userData, msg: "Data save successfully." })
 
@@ -323,7 +315,15 @@ const updateContactGroup=async(req,res)=>{
                         
                         })
                         const groupgroup = await all.save()
+                        
+                        // const alls = new GroupContact ({
+                        //     group_id:req.body.group[i],
+                        //     contact_id:groupData._id
+                        
+                        // })
+                        // const groupgroups = await alls.save()
                     }
+                  
                 }
             });
 
@@ -347,7 +347,7 @@ const deleteContact = async (req, res) => {
     try {
         const id = req.query.id;
         const userData = await ContactManagement.deleteOne({ _id: id });
-        const deleteContact = await ContactGroup.deleteMany({ contact_id: id });
+        const deleteContact = await ContactGroup.deleteMany({ contact_id: id })
         res.status(200).send({ success: true, msg: "Contact can be deleted" })
 
 
@@ -365,15 +365,15 @@ const editContact = async (req, res) => {
         const id = req.query.id;
 
         const userData = await ContactManagement.findById({ _id: id }).populate('group contact_source buisness_sector');
-        const taskHistory = await TaskHistory.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity task_id assign_task_to')
+        const taskHistory = await TaskHistory.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity task_id assign_task_to');
+        const task = await Task.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity assign_task_to contact_source')
         
         let { _doc: userDetails } = userData;
         // console.log(userDetails)
         const taskList = {
             ...userDetails,
-           
-                taskHistory
-              
+               task,
+                taskHistory      
             
         }
 
@@ -411,6 +411,8 @@ const updateContact = async (req, res) => {
                     email: req.body.email,
                     group: req.body.group,
                     business_opportunity: req.body.business_opportunity,
+                    contact_source:req.body.contact_source,
+                    buisness_sector:req.body.buisness_sector,
                     status: req.body.status,
                     address1: req.body.address1,
                     address2: req.body.address2,

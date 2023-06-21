@@ -225,9 +225,8 @@ const updateAction=async(req,res)=>{
 const addTask = async (req, res) => {
     try {
         const salesData = await Sales.find().exec();
-        // console.log(salesData);
         const selectedPhase = salesData.find((data) => data._id.equals(req.body.sales_phase));
-        // console.log('selectedPhase', selectedPhase, req.body.sales_phase);
+        
         const task = new Task({
             subject: req.body.subject,
             add_task_for: req.body.add_task_for,
@@ -268,6 +267,10 @@ const addTask = async (req, res) => {
                 assign_task_to: userData.assign_task_to,
                 budget: userData.budget,
                 task_status: userData.task_status,
+                client_firstName:userData.client_firstName,
+                client_lastName:userData.client_lastName,
+                client_contactNumber:userData.client_contactNumber,
+                client_email:userData.client_email,
                 level_of_urgency: userData.level_of_urgency,
                 reason_for_dealLost: userData.reason_for_dealLost,
                 lead_status:userData.lead_status,
@@ -277,44 +280,48 @@ const addTask = async (req, res) => {
                 note:req.body.note,
                 reason_for_dealLost:req.body.reason_for_dealLost,
                 task_completed:userData.task_completed,
+               
                 // is_archive:userData.task.is_archive
             })
             const historyData = await history.save()
             return historyData
-
+            
         }).then(async (historyData) => {
-            if(req.body.add_task_for=='contact' && selectedPhase.name !=='Initial Contact')
+            if(historyData.sales_phase && req.body.add_task_for=='contact' && selectedPhase.name !=='Initial Contact')
             {
-              const contactData = new Contact({
+              const contactData = new ContactManagement({
                first_name:req.body.client_firstName,
                last_name:req.body.client_lastName,
                primary_contact_number:req.body.client_contactNumber,
                email:req.body.client_email,
+               type:'contact'
 
             })
           
             const Data = await contactData.save()
 
-        }else if(req.body.add_task_for=='lead' && selectedPhase.name !=='Initial Contact')
+        }else if(historyData.sales_phase && req.body.add_task_for=='lead' && selectedPhase.name !=='Initial Contact')
         {
-            const leadData = new Lead({
+            const leadData = new ContactManagement({
                first_name:req.body.client_firstName,
                last_name:req.body.client_lastName,
                primary_contact_number:req.body.client_contactNumber,
                email:req.body.client_email,
+               type:'lead'
 
             })
            
             const Data = await leadData.save()
             
         }
-        else if(req.body.add_task_for=='customer' && selectedPhase.name !=='Initial Contact')
+        else if(historyData.sales_phase && req.body.add_task_for=='customer' && selectedPhase.name !=='Initial Contact')
         {
-             const customerData = new Customer({
+             const customerData = new ContactManagement({
                first_name:req.body.client_firstName,
                last_name:req.body.client_lastName,
                primary_contact_number:req.body.client_contactNumber,
                email:req.body.client_email,
+               type:'customer'
 
             })
             const Data = await customerData.save()
@@ -327,11 +334,11 @@ const addTask = async (req, res) => {
             res.status(200).send({ success: true, data: userData, msg: "Data save successfully." })
         }
         else {
-            res.status(200).send({ msg: "contact data failed" })
+            res.status(200).send({ success: false,msg: "contact data failed" })
         }
     }
     catch (error) {
-        console.log(error);
+        // console.log(error);
         res.status(400).send(error.message);
     }
 
@@ -374,8 +381,11 @@ const addnextAction=async(req,res)=>{
                 next_action:1,
                 note:req.body.note,
                 reason_for_dealLost:req.body.reason_for_dealLost,
-                task_completed:req.body.task_completed
-                
+                task_completed:req.body.task_completed,
+                client_firstName: req.body.client_firstName,
+                client_lastName: req.body.client_lastName,
+                client_contactNumber:req.body.client_contactNumber,
+                client_email: req.body.client_email,
         })
         const updateAllHistoryData = await TaskHistory.updateMany({
             task_id: req.body._id
@@ -386,6 +396,7 @@ const addnextAction=async(req,res)=>{
         }).then(async (updateRes) =>{
 
             const historyData = await history.save().then(async (historyDetails) => {
+                
                const task= await Task.findByIdAndUpdate(
                     {
                         _id: req.body._id
@@ -399,12 +410,14 @@ const addnextAction=async(req,res)=>{
                         action_date:req.body.action_date,
                         remarks: req.body.remarks,
                         assign_task_to: req.body.assign_task_to,
-                        is_completed:req.body.is_completed,
-                        selected_list: req.body.selected_list,
-                        next_action:1,
                         note:req.body.note,
                         reason_for_dealLost:req.body.reason_for_dealLost,
-                        task_completed:req.body.task_completed
+                        budget: req.body.budget,
+                        level_of_urgency: req.body.level_of_urgency,
+                        client_firstName: req.body.client_firstName,
+                        client_lastName: req.body.client_lastName,
+                        client_contactNumber: req.body.client_contactNumber,
+                        client_email: req.body.client_email,
                        
                     }
                 })
@@ -608,6 +621,7 @@ const taskList = async (req, res) => {
 
             // console.log('query', query);
             let taskHistory = await TaskHistory.find({task_id:data._id})
+            
 
             let selected_list = query ? query.exec() : [];
             const { _doc: _result } = data;
@@ -634,7 +648,7 @@ const taskList = async (req, res) => {
 
         const newData = await Task.find({task_status:1}).countDocuments();
         const progressData = await Task.find({task_status:2}).countDocuments();
-        const completeData = await Task.find({task_status:2}).countDocuments();
+        const completeData = await Task.find({task_status:3}).countDocuments();
         
         result.rowsPerPage = limit;
         return res.send({ msg: "Posts Fetched successfully", data: { ...result, data: list, newData:newData, progressData:progressData,
@@ -654,6 +668,7 @@ const deleteTask = async (req, res) => {
 
         const id = req.query.id;
         await Task.deleteOne({ _id: id });
+        await TaskHistory.deleteMany({task_id:id})
         res.status(200).send({ success: true, msg: "Task can be deleted" })
 
     }
@@ -671,7 +686,7 @@ const editTask = async (req, res) => {
         sortObject[stype] = sdir;
 
         const id = req.query.id;
-        const userData = await Task.findById({ _id: id }).populate('contact_source action business_opportunity sales_phase')
+        const userData = await Task.findById({ _id: id }).populate('contact_source action business_opportunity sales_phase selected_list')
             .populate({
 
                 path: "assign_task_to",
@@ -772,14 +787,19 @@ const updateTask = async (req, res) => {
                         note:req.body.note,
                         reason_for_dealLost: req.body.reason_for_dealLost,
                         next_action:req.body.next_action,
-                        
+                        budget: req.body.budget,
+                        client_firstName: userData.client_firstName,
+                        client_lastName: userData.client_lastName,
+                        client_contactNumber: userData.client_contactNumber,
+                        client_email: userData.client_email,
+                        level_of_urgency: userData.level_of_urgency,
                       
                     },
                     {sort: { 'action_date' : -1 }}
                 );
             const updateHistory = await TaskHistory.find(
                 { task_id: req.params.id }
-            );
+            )
             console.log(updateHistory);
             return {
                 userData,
@@ -861,7 +881,36 @@ const editTaskInfo=async(req,res)=>{
                  remarks:req.body.remarks,
                  assign_task_to:req.body.assign_task_to,
                  reason_for_dealLost:req.body.reason_for_dealLost,
-       }})
+                 budget: req.body.budget,
+                 client_firstName: req.body.client_firstName,
+                 client_lastName: req.body.client_lastName,
+                 client_contactNumber: req.body.client_contactNumber,
+                 client_email: req.body.client_email,
+                 level_of_urgency: req.body.level_of_urgency,
+       }}).then(async (updateRes) =>{
+            
+           const task= await Task.findByIdAndUpdate(
+                {
+                    _id:updateRes.task_id
+                }, {
+                $set: {
+                   
+                    sales_phase:req.body.sales_phase,
+                    action:req.body.action,
+                    action_date:req.body.action_date,
+                    remarks:req.body.remarks,
+                    assign_task_to:req.body.assign_task_to,
+                    budget: req.body.budget,
+                    client_firstName: req.body.client_firstName,
+                    client_lastName: req.body.client_lastName,
+                    client_contactNumber: req.body.client_contactNumber,
+                    client_email: req.body.client_email,
+                    level_of_urgency: req.body.level_of_urgency,
+                   
+                   
+                }
+            })
+        })
        res.status(200).send({sucess:true,msg:"sucessfully updated",task:userData})
     }
     catch(error){
@@ -882,6 +931,7 @@ const updateIndivisual=async(req,res)=>{
                  remarks:req.body.remarks,
                  assign_task_to:req.body.assign_task_to,
                  reason_for_dealLost:req.body.reason_for_dealLost,
+                 
        }})
        res.status(200).send({sucess:true,msg:"sucessfully updated",task:userData})
 
@@ -1001,6 +1051,72 @@ const sendInvoiceData=async(req,res)=>{
      }
 }
 
+// send quotation data
+const sendQuotationData=async(req,res)=>{
+    try{
+        console.log(req.body, req.file, 'abc');
+
+        const email = req.body.recipient.split(",");
+        console.log(email);
+        const transporter= nodemailer.createTransport({
+            service:'gmail',
+            requireTLS:true,
+            auth:{
+                user:'balodepriyanka0@gmail.com',
+                pass:'fpoaokmqbvgkgflt'
+            },            
+        });
+
+        const attachment = {
+            filename: req.file.filename,
+            content: fs.createReadStream(req.file.path)
+        };
+        
+        const mailOptions={
+            from:'balodepriyanka0@gmail.com',
+            to: email,
+            subject: 'Quotation',
+            text: 'Please find the Quotation attachment.',
+            attachments: [attachment]
+        }
+
+        transporter.sendMail(mailOptions,function(error,info){
+            if(error){
+                console.log(error)
+                res.status(200).send({success:false, message: "Quotation sending failed"})
+            }else{
+                let _promise = Promise.resolve();
+                _promise.then(async () => {
+                    await TaskHistory.findOneAndUpdate(
+                        { "_id": req.body.task_history_id },               
+                        {
+                            quotation_file:(Object.keys(req.file).length > 0) ? req.file.filename : null
+                        },
+                        {sort: { 'action_date' : -1 }}
+                    );
+                    
+                    const updateHistory = await TaskHistory.find(
+                        { _id: req.body.task_history_id }
+                    );
+                    console.log(updateHistory);
+                    return {
+                        // userData,
+                        updateHistory
+                    }
+
+                }).then((data) => {
+                    res.status(200).send({success:true, message: "Quotation send successfully",data:data}) 
+                }).catch(err => {
+                    console.log(err);
+                    res.status(200).send({success:false, message: "Quotation sending failed"})
+                })
+            }
+        });
+     }
+     catch(error){
+         res.status(400).send(error.message);
+     }
+}
 // task archive unarchive
 const updateTaskArchiveUnarchive=async(req,res)=>{
     try{
@@ -1042,6 +1158,7 @@ module.exports = {
     exportTask,
     getTaskHistoryByID,
     sendInvoiceData,
+    sendQuotationData,
     updateTaskArchiveUnarchive
 }
 

@@ -20,8 +20,15 @@ const contactSourceGraph=async(req,res)=>{
                 count: data?.length
             }
         })
+         
         Promise.all(allData).then((data) => {
-            res.status(200).send({success:true,data:data});
+            var tot=0
+            for(i=0;i<data.length;i++){
+                var count=data[i].count
+                tot=tot+count
+            }
+           
+            res.status(200).send({success:true,data:data,tot:tot});
         })
        
 
@@ -56,6 +63,8 @@ const audiencePattern=async(req,res)=>{
         res.status(400).send(error.message);
     }
 }
+
+
 
 // sales overview
 

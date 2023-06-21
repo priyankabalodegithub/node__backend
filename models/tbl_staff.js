@@ -43,11 +43,11 @@ token:{
    type:String,
    default:''
  },
- title:[{
-   type:mongoose.Schema.Types.ObjectId,
-   ref:'Tbl_Right',  
-   // required:true      
-}],
+//  title:[{
+//    type:mongoose.Schema.Types.ObjectId,
+//    ref:'Tbl_Right',  
+//    // required:true      
+// }],
 },
 {timestamps:true});
 module.exports=mongoose.model('Tbl_Staff',staffSchema)

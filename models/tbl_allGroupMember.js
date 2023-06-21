@@ -6,10 +6,10 @@ const allcontactSchema=new mongoose.Schema({
       required:true
    },
 
-  group_id:[{
+  group_id:{
   type:mongoose.Schema.Types.ObjectId,ref:'Tbl_Group',
    required:true
-}],
+},
 
   
 });

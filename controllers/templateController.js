@@ -128,8 +128,8 @@ const templateList=async(req,res)=>{
    
     try{
         var sortObject = {};
-        var stype = req.query.sorttype ? req.query.sorttype : 'createdAt';
-        var sdir = req.query.sortdirection ? req.query.sortdirection : -1;
+        var stype = req.query.sorttype ? req.query.sorttype :'createdAt';
+        var sdir = req.query.sortdirection ? req.query.sortdirection :-1;
         sortObject[stype] = sdir;
 
         
@@ -199,8 +199,8 @@ const templateList=async(req,res)=>{
         };
       })
       const msgPending = await Template.find({template_created_for:'sms',is_send:1}).countDocuments();
-    const whatsppPending = await Template.find({template_created_for:'whatsApp',is_send:1}).countDocuments();
-      return res.send({ msg: "Posts Fetched successfully", data: result,msgPending:msgPending,whatsppPending:whatsppPending});
+    const whatsappPending = await Template.find({template_created_for:'whatsApp',is_send:1}).countDocuments();
+      return res.send({ msg: "Posts Fetched successfully", data: result,msgPending:msgPending,whatsappPending:whatsappPending});
        
     }
 

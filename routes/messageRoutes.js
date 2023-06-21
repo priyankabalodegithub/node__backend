@@ -16,7 +16,7 @@ message_route.get('/send-message',messageController.messageSend);
 message_route.get('/send-messageLater',messageController.messageSendLater);
 message_route.get('/send-allMessage',messageController.sendAll);
 message_route.get('/schedule-allMessage',messageController.scheduleAll);
-
+message_route.get('/delete-message',messageController.deletemessage);
 message_route.get('/send-list',messageController.sendList);
 message_route.get('/edit-message',messageController.editMessage);
 message_route.put('/edit-message/:id',messageController.updateMessage);

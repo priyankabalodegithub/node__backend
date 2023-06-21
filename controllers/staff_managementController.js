@@ -4,6 +4,7 @@ const Right=require('../models/tbl_rights');
 const Permission=require('../models/staff_permission');
 const permissionRights=require('../models/tbl_rights')
 const Task = require('../models/tbl_taskManagement');
+const TaskHistory = require('../models/task_history')
 const ContactManagement = require('../models/tbl_contactManagement');
 const bcrypt=require('bcrypt');
 const randomstring=require('randomstring');
@@ -358,13 +359,13 @@ const reset_password=async(req,res)=>{
         const confirm_password=req.body.confirm_password;
         if(password===confirm_password){
         const userData=await Staff.findByIdAndUpdate({_id:tokenData._id},{$set:{password:password,confirm_password:confirm_password,token:''}},{new:true});
-        res.status(200).send({success:true,msg:"user pass has been reset",data:userData})
+        res.status(200).send({success:true,msg:"Your User Password has been reset",data:userData})
         }else{
-          res.status(200).send({success:true,msg:"Password and Confirm password does not match"})
+          res.status(200).send({success:false,msg:"Password and Confirm password does not match"})
         }
       }
       else{
-          res.status(200).send({success:false,msg:"this link has been expired"})
+          res.status(200).send({msg:"this link has been expired"})
       }
 
   }
@@ -526,6 +527,7 @@ const staffList = async (req, res) => {
     if(req.query.rightsFilters){
         rightsFilters=req.query.rightsFilters.split(',');            
     }
+   
     const query = {};
 
     query.user_type = 'user';
@@ -534,11 +536,12 @@ const staffList = async (req, res) => {
     if (rightsFilters.length > 0) {
         query.permissionModuleList = { $in: rightsFilters }
     } 
+    console.log( query.permissionModuleList)
 
     const pageNumber = parseInt(req.query.pageNumber) || 0;
     const limit = parseInt(req.query.limit) || 4;
     const result = {};
-    const totalPosts = await Staff.countDocuments().exec();
+    const totalPosts = await Staff.countDocuments(query).exec();
     let startIndex = pageNumber * limit;
     const endIndex = (pageNumber + 1) * limit;
     result.totalPosts = totalPosts;
@@ -548,13 +551,13 @@ const staffList = async (req, res) => {
         limit: limit,
       };
     }
-    if (endIndex < (await Staff.countDocuments().exec())) {
+    if (endIndex < (await Staff.countDocuments(query).exec())) {
       result.next = {
         pageNumber: pageNumber + 1,
         limit: limit,
       };
     }
-    const staffList = await Staff.find()
+    const staffList = await Staff.find(query)
       .sort(sortObject)
       .skip(startIndex)
       .limit(limit)
@@ -615,7 +618,7 @@ const staffList = async (req, res) => {
                 _id: selected_contact_list,
               }).exec().then((result)=>{
                 if(result){
-                  taskAssignList.push(result.first_name);
+                  taskAssignList.push(result.first_name+' '+result.last_name);
                 }
               });
             })
@@ -627,6 +630,7 @@ const staffList = async (req, res) => {
         let completedTaskCount = await Task.find({ assign_task_to: lst._id, task_status: 3, task_completed: 1 }).countDocuments();
         let conversionRate = (completedTaskCount / totalTask) * 100;
         conversionRate = (conversionRate) ? Math.round(conversionRate.toFixed(2)) : 0;
+        
         return {
           ...staffDetails,
           // permission,
@@ -716,6 +720,9 @@ const editStaff=async(req,res)=>{
 
     const id=req.query.id;
     const userData=await Staff.find({_id:id})
+    const taskHistory = await TaskHistory.find({ assign_task_to: req.query.id }).populate('sales_phase action business_opportunity task_id assign_task_to');
+    const task = await Task.find({ assign_task_to: req.query.id }).populate('sales_phase action business_opportunity assign_task_to contact_source')
+    
     const permission = await Permission.find({
       staff_id: id,
     })
@@ -732,7 +739,9 @@ const editStaff=async(req,res)=>{
     // console.log(userDetails)
     const permissionList = {
       ...userDetails,
-      permission
+      permission,
+      task,
+      taskHistory  
     }
 
     let permissionBaseStructure = await getRightList();

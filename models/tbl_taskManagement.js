@@ -106,6 +106,9 @@ task_completed:{
  invoice_file:{
    type:String
  },
+ quotation_file:{
+   type:String
+ },
  is_archive:{
    type:Number,
    default:0

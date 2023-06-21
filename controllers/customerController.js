@@ -11,8 +11,11 @@ const Group=require('../models/tbl_group');
 const ContactManagement=require('../models/tbl_contactManagement');
 const csv=require('csvtojson')
 const GroupContact=require('../models/tbl_groupContact');
+const Task = require('../models/tbl_taskManagement');
+const TaskHistory = require('../models/task_history');
 
 const ContactGroup = require('../models/tbl_allGroupMember');
+const { taskList } = require('./task_managementController');
 
 const getCountries=async(req,res)=>{
     try{
@@ -86,7 +89,10 @@ const addCustomer=async(req,res)=>{
                 city:req.body.city, 
                 state:req.body.state,
                 country:req.body.country,
-                type:req.body.type 
+                type:req.body.type,
+                customerType:req.body.customerType
+              
+               
                 
         })
             const userData=await customer.save().then(async (userData) => {
@@ -100,21 +106,15 @@ const addCustomer=async(req,res)=>{
                        
                     })
                         const sendMembers = await all.save()
+                        const groupCountData=await Group.findById({_id:req.body.group[i]})
+                           const count=groupCountData.count+1;
+                           const userData1= await Group.findByIdAndUpdate({_id:req.body.group[i]},{$set:{count:count}});
             }
         }
     })
-            //     const historyData = await all.save()
-            //     // console.log(historyData)
-            //     const groupCountData=await Group.findById({_id:req.body.group[i]})
-            //    const count=groupCountData.count+1;
-            //    const userData1= await Group.findByIdAndUpdate({_id:req.body.group[i]},{$set:{count:count}});
-            // }
-            // });
-
             if(userData)
             {
-               
-                
+                 
                 res.status(200).send({success:true,data:userData,msg:"Data save successfully."})
             }
             else
@@ -184,6 +184,8 @@ const allCustomer=async(req,res)=>{
     }
 }
 
+
+
 // customer list
 const customerList=async(req,res)=>{
     
@@ -198,19 +200,26 @@ const customerList=async(req,res)=>{
             search=req.query.search
         }
          var serviceFilters=[];
+         var customerTypeFilters=[];
          
       
     if(req.query.serviceFilters){
         serviceFilters=req.query.serviceFilters.split(',');            
     }
+    if(req.query.customerTypeFilters){
+        customerTypeFilters=req.query.customerTypeFilters.split(',');            
+    }
     const query = {};
 
     query.type = 'customer';
     
-
     if (serviceFilters.length > 0) {
         query.service_offered = { $in: serviceFilters }
     } 
+    if (customerTypeFilters.length > 0) {
+        query.customerType = { $in: customerTypeFilters }
+    } 
+
     if(req.query.daysFilter){
         var lastWeek = new Date();
         lastWeek.setDate(lastWeek.getDate() - req.query.daysFilter);
@@ -251,10 +260,66 @@ const customerList=async(req,res)=>{
         .skip(startIndex)
         .limit(limit)
         .exec();
+        var a=result.data
+        const customerLists = await Promise.all(
+           a?.map(async (lst) => {
+              
+
+                let tasks = await Task.find({
+                    selected_list: lst._id,
+                    
+                  }).populate("sales_phase")
+                  .populate({
+
+                    path: "selected_list",
+                    model: "Tbl_ContactManagement",
+    
+                }).then((result)=>{
+                    for(i=0;i<result.length;i++)
+                    {
+                       
+                        if(result[i].add_task_for==='customer'&& result[i].sales_phase[0].name==="Negotiation"){
+                            lst.customerType="Prospective";
+                        }else if(lst._id!==result[i].selected_list[0]._id){
+                            lst.customerType="Existing";
+                        }
+                    }
+                  
+                })
+                  const {_doc: customerList} = lst;
+                  
+               
+              return {
+                ...customerList,
+              
+              };
+            
+            })
+          );
+          var existingcount=0
+          var prospectivecount=0
+          for(i=0;i<result.data.length;i++)
+          {
+            if(result.data[i].customerType==="Existing")
+            {
+               existingcount=existingcount+1
+            }
+            if(result.data[i].customerType==="Prospective")
+            {
+               prospectivecount=prospectivecount+1
+            }
+          }
+
+          const convertedConnection = await Task.find({add_task_for:"contact",task_status:3}).countDocuments();
+          const convertedLeads = await Task.find({add_task_for:"lead",task_status:3}).countDocuments();
+          const totalConverted=convertedConnection+convertedLeads;
+          const tot=existingcount+prospectivecount+totalConverted;
       result.rowsPerPage = limit;
-      return res.send({ msg: "Posts Fetched successfully", data: result});
+      return res.send({ msg: "Posts Fetched successfully",  data: { ...result, data: customerLists,
+        Existing:existingcount,Prospective:prospectivecount,totalConverted:totalConverted,total:tot}});
        
     }
+
 
     catch(error){
         console.log(error);
@@ -267,8 +332,10 @@ const deleteCustomer=async(req,res)=>{
     try{
 
         const id=req.query.id;
+        const userData=await ContactManagement.findById({_id:id})
         await ContactManagement.deleteOne({_id:id});
-        const deleteCustomer= await GroupContact.deleteMany({contact_id:id});
+        const deleteCustomer= await ContactGroup.deleteMany({contact_id:id});
+     
     res.status(200).send({success:true,msg:"Customer can be deleted"})
 
     }
@@ -284,11 +351,21 @@ const editCustomer=async(req,res)=>{
 
        const id=req.query.id;
        const userData=await ContactManagement.findById({_id:id}).populate('group service_offered contact_source buisness_sector');
-
+       const taskHistory = await TaskHistory.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity task_id assign_task_to');
+       const task = await Task.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity assign_task_to contact_source')
+       
+       let { _doc: userDetails } = userData;
+       // console.log(userDetails)
+       const taskList = {
+           ...userDetails,
+              task,
+               taskHistory      
+           
+       }
        if(userData){
 
         
-        res.status(200).send({success:true,customer:userData})
+        res.status(200).send({success:true,customer:taskList})
 
        }
        else{
@@ -324,6 +401,7 @@ const updateCustomer=async(req,res)=>{
            
         })
         const data = await all.save()
+       
     }
     });
    
@@ -426,6 +504,9 @@ const updateCustomerGroup=async(req,res)=>{
                         
                         })
                         const groupgroup = await all.save()
+                        const groupCountData = await Group.findById({ _id: req.body.group[i] })
+                        const count = groupCountData.count + 1;
+                        const userData1 = await Group.findByIdAndUpdate({ _id: req.body.group[i] }, { $set: { count: count } });
                     }
                 }
             });

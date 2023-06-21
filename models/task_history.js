@@ -35,6 +35,22 @@ task_id:{
  budget:{
     type:Number
   },
+  client_firstName:{
+    type:String,
+    // required:true  
+  },
+  client_lastName:{
+    type:String,
+    // required:true  
+  },
+  client_contactNumber:{
+    type:String,
+    // required:true  
+  },
+  client_email:{
+    type:String,
+    // required:true  
+  },
  invoice_file:{
     type:String
   },

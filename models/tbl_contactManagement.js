@@ -67,12 +67,12 @@ const contactManagementSchema=new mongoose.Schema({
  contact_source:[{
    type:mongoose.Schema.Types.ObjectId,
    ref:'Tbl_ContactSource',
-   required:true       
+   // required:true       
 }],
 buisness_sector:[{
    type:mongoose.Schema.Types.ObjectId,
    ref:'Tbl_BusinessSector',
-   required:true       
+   // required:true       
 }],
  address1:{
     type:String,
@@ -111,7 +111,12 @@ country:{
 type:{
    type:String,
   
-}
+},
+customerType:{
+  type:String,
+  default:"Existing"
+  
+},
   
 },
 {timestamps:true}

@@ -73,6 +73,8 @@ const addLead=async(req,res)=>{
                 primary_contact_number:req.body.primary_contact_number,
                 secondary_contact_number:req.body.secondary_contact_number,
                 business_opportunity:req.body.business_opportunity,
+                contact_source:req.body.contact_source,
+                 buisness_sector:req.body.buisness_sector,
                 group:req.body.group,
                 status:req.body.status,
                 Lead_Status:req.body.Lead_Status,
@@ -98,21 +100,14 @@ const addLead=async(req,res)=>{
                        
                     })
                         const sendMembers = await all.save()
+                        const groupCountData=await Group.findById({_id:req.body.group[i]})
+                           const count=groupCountData.count+1;
+                           const userData1= await Group.findByIdAndUpdate({_id:req.body.group[i]},{$set:{count:count}});
             }
         }
     })
-            //     const historyData = await all.save()
-            //     // console.log(historyData)
-            //     const groupCountData=await Group.findById({_id:req.body.group[i]})
-            //    const count=groupCountData.count+1;
-            //    const userData1= await Group.findByIdAndUpdate({_id:req.body.group[i]},{$set:{count:count}});
-            // }
-            // });
-
             if(userData)
-            {
-               
-                
+            { 
                 res.status(200).send({success:true,data:userData,msg:"Data save successfully."})
             }
             else
@@ -193,8 +188,8 @@ const leadList=async(req,res)=>{
    
     try{
         var sortObject = {};
-        var stype = req.query.sorttype ? req.query.sorttype : 'createdAt';
-        var sdir = req.query.sortdirection ? req.query.sortdirection : -1;
+        var stype = req.query.sorttype ? req.query.sorttype :'createdAt';
+        var sdir = req.query.sortdirection ? req.query.sortdirection :-1;
         sortObject[stype] = sdir;
 
         
@@ -261,7 +256,7 @@ const leadList=async(req,res)=>{
 
         
         result.data = await ContactManagement.find(query)
-        .populate('group business_opportunity')
+        .populate('group business_opportunity contact_source buisness_sector')
         .find({
             $or:[
                 {first_name:{$regex:'.*'+search+'.*',$options:'i'}},
@@ -298,8 +293,6 @@ const leadList=async(req,res)=>{
                         
                       });
                       
-              
-                  
                   const {_doc: leadList} = lst;
               
               return {
@@ -359,6 +352,9 @@ const updateLeadGroup=async(req,res)=>{
                         
                         })
                         const groupgroup = await all.save()
+                        const groupCountData = await Group.findById({ _id: req.body.group[i] })
+                        const count = groupCountData.count + 1;
+                        const userData1 = await Group.findByIdAndUpdate({ _id: req.body.group[i] }, { $set: { count: count } });
                     }
                 }
             });
@@ -384,8 +380,8 @@ const deleteLead=async(req,res)=>{
 
         const id=req.query.id;
         await ContactManagement.deleteOne({_id:id});
-        const deleteLead= await GroupContact.deleteMany({contact_id:id});
-    res.status(200).send({success:true,msg:"Lead can be deleted"})
+        const deleteCustomer= await ContactGroup.deleteMany({contact_id:id});
+        res.status(200).send({success:true,msg:"Lead can be deleted"})
 
     }
     catch(err)
@@ -400,12 +396,22 @@ const editLead=async(req,res)=>{
     try{
 
        const id=req.query.id;
-       const userData=await ContactManagement.findById({_id:id}).populate('group business_opportunity');
+       const userData=await ContactManagement.findById({_id:id}).populate('group business_opportunity contact_source buisness_sector');
+       const taskHistory = await TaskHistory.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity task_id assign_task_to');
+       const task = await Task.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity assign_task_to contact_source')
+       
+       let { _doc: userDetails } = userData;
+        // console.log(userDetails)
+        const taskList = {
+            ...userDetails,
+               task,
+                taskHistory       
+        }
 
        if(userData){
 
         
-        res.status(200).send({success:true,lead:userData})
+        res.status(200).send({success:true,lead:taskList})
 
        }
        else{
@@ -434,6 +440,8 @@ const updateLead=async(req,res)=>{
              primary_contact_number:req.body.primary_contact_number,
              secondary_contact_number:req.body.secondary_contact_number,
              business_opportunity:req.body.business_opportunity,
+             contact_source:req.body.contact_source,
+            buisness_sector:req.body.buisness_sector,
             group:req.body.group,
             status:req.body.status,
             address1:req.body.address1,

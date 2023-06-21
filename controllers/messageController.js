@@ -78,6 +78,7 @@ const sendMembers=async(req,res)=>{
                 template_name:req.body.template_name,
                 template_id:req.body.template_id,
                 media:selectedPhase.template_created_for,
+                group_id:req.body.group_id,
                 members:req.body.members,
                 is_send:req.body.is_send,
                 when_to_send:req.body.when_to_send,
@@ -240,6 +241,22 @@ const messageSend=async(req,res)=>{
     }
 }
 
+// delete messages
+const deletemessage = async (req, res) => {
+
+    try {
+        const id = req.query.id;
+        const userData = await Message.deleteOne({ _id: id });
+        const deleteContact = await MsgSend.deleteMany({ contact_id: id })
+        res.status(200).send({ success: true, msg: "Message can be deleted" })
+
+
+    }
+    catch (err) {
+        res.status(400).send(err.message)
+    }
+}
+
 // message send list
 const messageSendLater=async(req,res)=>{
     try{
@@ -361,10 +378,27 @@ const updateMessage=async(req,res)=>{
                 template_name:req.body.template_name,
                 template_id:req.body.template_id,
                 members:req.body.members,
+                group_id:req.body.group_id,
                 is_send:req.body.is_send,
                 when_to_send:req.body.when_to_send,
                 contact_count:req.body.members.length
-            }});
+            }}).then(async (userData) => {
+                await MsgSend.deleteMany({ msg_id:userData._id,});
+                if(req.body.members && req.body.members.length >0){
+              
+                    for(var i=0;i<req.body.members.length;i++){
+                        const all = new MsgSend({
+                            msg_id:userData._id,
+                            contact_id:req.body.members[i]
+                        
+                        })
+                        const groupgroup = await all.save()
+                        
+                       
+                    }
+                  
+                }
+            });
        res.status(200).send({sucess:true,msg:"sucessfully updated",message:userData})
 
     }
@@ -423,5 +457,6 @@ module.exports={
     sendAll,
     scheduleAll,
     exportMessage,
-    updateMessageArchiveUnarchive
+    updateMessageArchiveUnarchive,
+    deletemessage
 }
