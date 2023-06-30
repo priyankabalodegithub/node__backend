@@ -101,7 +101,10 @@ is_completed:{
   type:Number,
   default:0
 },
-
+current_time:{
+  type:Date,
+  default:new Date()
+}
  
 },
 {timestamps:true}

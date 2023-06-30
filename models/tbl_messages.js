@@ -20,7 +20,7 @@ const messageSchema=new mongoose.Schema({
     
     group_id:[{
       type:mongoose.Schema.Types.ObjectId,ref:'Tbl_Group',
-      //  required:true
+     
    }],
    media:{
     type:String

@@ -1,12 +1,12 @@
 const mongoose=require('mongoose')
 const msgSendSchema=new mongoose.Schema({
-    msg_id:[{
+    msg_id:{
         type:mongoose.Schema.Types.ObjectId,ref:'Tbl_Message',
         //  required:true
-     }],
-     contact_id:[{
+     },
+     contact_id:{
         type:mongoose.Schema.Types.ObjectId,ref:'Tbl_GroupContact',
-     }]
+     }
 
   
 });

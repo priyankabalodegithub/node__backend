@@ -23,8 +23,8 @@ const addMessage=async(req,res)=>{
                 is_send:req.body.is_send,
                 when_to_send:req.body.when_to_send,
                 contact_count:req.body.contact_count,
-                is_archive:req.body.is_archive
-               
+                is_archive:req.body.is_archive,
+                members:req.body.members,
                 
         })
             const userData=await message.save().then(async (userData) => {
@@ -87,7 +87,7 @@ const sendMembers=async(req,res)=>{
                 
         })
             const userData=await message.save().then(async (userData) => {
-               
+               if(userData.members.length>0){
                 for(var i=0; i< req.body.members.length;i++){
                    
                  
@@ -98,6 +98,7 @@ const sendMembers=async(req,res)=>{
                         })
                         const sendMembers = await data.save()
             }
+        }
             });
 
             if(userData)
@@ -381,7 +382,7 @@ const updateMessage=async(req,res)=>{
                 group_id:req.body.group_id,
                 is_send:req.body.is_send,
                 when_to_send:req.body.when_to_send,
-                contact_count:req.body.members.length
+                contact_count:req.body.contact_count
             }}).then(async (userData) => {
                 await MsgSend.deleteMany({ msg_id:userData._id,});
                 if(req.body.members && req.body.members.length >0){

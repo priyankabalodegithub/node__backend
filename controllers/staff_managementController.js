@@ -574,7 +574,7 @@ const staffList = async (req, res) => {
         ],
       })
       .exec();
-
+    var count=0;
     const permissionList = await Promise.all(
       staffList?.map(async (lst) => {
         let permission = await Permission.find({
@@ -630,6 +630,8 @@ const staffList = async (req, res) => {
         let completedTaskCount = await Task.find({ assign_task_to: lst._id, task_status: 3, task_completed: 1 }).countDocuments();
         let conversionRate = (completedTaskCount / totalTask) * 100;
         conversionRate = (conversionRate) ? Math.round(conversionRate.toFixed(2)) : 0;
+        count=count+conversionRate
+       
         
         return {
           ...staffDetails,
@@ -642,12 +644,15 @@ const staffList = async (req, res) => {
         };
       })
     );
-    
-    
+    let totalTasks = await Task.find().countDocuments();
+    let completedTaskCounts = await Task.find({task_status: 3, task_completed: 1 }).countDocuments();
+        let conversionRate = (completedTaskCounts / totalTasks) * 100;
+        conversionRate = (conversionRate) ? Math.round(conversionRate.toFixed(2)) : 0;
+        let percentage=conversionRate+'%'
     result.rowsPerPage = limit;
     return res.send({
       msg: "Posts Fetched successfully",
-      data: { ...result, data: permissionList},
+      data: { ...result, data: permissionList,avrageRate:percentage},
     });
   } catch (error) {
     console.log(error);
@@ -660,7 +665,7 @@ const staffList = async (req, res) => {
 const allstaffList=async(req,res)=>{
   try{
 
-      const userData=await Staff.find();
+      const userData=await Staff.find({user_type:"user"});
   res.status(200).send({success:true,data:userData});
 
   }

@@ -834,7 +834,7 @@ const updateNote = async (req, res) => {
                 {
                     note:req.body.note,
                     is_completed:req.body.is_completed,
-                    // note:req.body.note
+                  
                 },
                 {sort: { 'action_date' : -1 }}
             );
