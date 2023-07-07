@@ -6,7 +6,7 @@ const config=require("../config/config");
 const jwt=require('jsonwebtoken');
 const Country=require('../models/country');
 const State=require('../models/state');
-const City=require('../models/city')
+const City=require('../models/city');
 const Group=require('../models/tbl_group');
 const ContactManagement=require('../models/tbl_contactManagement');
 const csv=require('csvtojson')
@@ -132,7 +132,7 @@ const addCustomer=async(req,res)=>{
 const emailExist=async(req,res)=>{
 
     try{
-        ContactManagement.find({email:req.query.email})
+        ContactManagement.find({email:req.query.email,is_deleted:0})
         .then(async resp=>{
          if(resp.length!=0){
            return res.status(200).send({success:false,msg:'Email alredy exist'})
@@ -154,7 +154,7 @@ const contactExist=async(req,res)=>{
 
     try{
        
-        ContactManagement.find({primary_contact_number:req.query.primary_contact_number})
+        ContactManagement.find({primary_contact_number:req.query.primary_contact_number,is_deleted:0})
         .then(async resp=>{
          if(resp.length!=0){
            return res.status(200).send({success:false,msg:'contact alredy exist'})
@@ -175,7 +175,7 @@ const contactExist=async(req,res)=>{
 const allCustomer=async(req,res)=>{
     try{
 
-        const userData=await ContactManagement.find({type:'customer'});
+        const userData=await ContactManagement.find({type:'customer',is_deleted:0});
     res.status(200).send({success:true,data:userData});
 
     }
@@ -212,6 +212,7 @@ const customerList=async(req,res)=>{
     const query = {};
 
     query.type = 'customer';
+    query.is_deleted=0
     
     if (serviceFilters.length > 0) {
         query.service_offered = { $in: serviceFilters }
@@ -267,6 +268,7 @@ const customerList=async(req,res)=>{
 
                 let tasks = await Task.find({
                     selected_list: lst._id,
+                    is_deleted:0
                     
                   }).populate("sales_phase")
                   .populate({
@@ -310,8 +312,8 @@ const customerList=async(req,res)=>{
             }
           }
 
-          const convertedConnection = await Task.find({add_task_for:"contact",task_status:3}).countDocuments();
-          const convertedLeads = await Task.find({add_task_for:"lead",task_status:3}).countDocuments();
+          const convertedConnection = await Task.find({add_task_for:"contact",task_status:3,is_deleted:0}).countDocuments();
+          const convertedLeads = await Task.find({add_task_for:"lead",task_status:3,is_deleted:0}).countDocuments();
           const totalConverted=convertedConnection+convertedLeads;
           const tot=existingcount+prospectivecount+totalConverted;
       result.rowsPerPage = limit;
@@ -344,15 +346,68 @@ const deleteCustomer=async(req,res)=>{
        res.status(400).send(err.message)
     }
 }
+// undo customer
+const undoCustomer=async(req,res)=>{
+    try{
+      
+       const userData= await ContactManagement.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:0}});
+       await ContactGroup.deleteMany({ contact_id: userData._id });
+       if(userData.group && userData.group.length >0){
+     
+           for(var i=0;i<userData.group.length;i++){
+               const all = new ContactGroup({
+                   group_id:userData.group[i],
+                   contact_id:userData._id
+               
+               })
+               const groupgroup = await all.save()
+               
+           }
+         
+       }
+       res.status(200).send({success:true,msg:"Customer can be undo"})
+
+    }
+    catch(error){
+        res.status(400).send(error.message);
+    }
+}
+// soft delete 
+const softDeleteCustomer=async(req,res)=>{
+    try{
+       
+       const userData= await ContactManagement.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:1}});
+  
+       await ContactGroup.deleteMany({ contact_id: userData._id });
+       if(req.body.group && req.body.group.length >0){
+     
+           for(var i=0;i<req.body.group.length;i++){
+               const all = new ContactGroup({
+                   group_id:req.body.group[i],
+                   contact_id:userData._id
+               
+               })
+               const groupgroup = await all.save()
+               
+           }
+         
+       }
+       res.status(200).send({success:true,msg:"Customer can be deleted"})
+        }
+
+    catch(error){
+        res.status(400).send(error.message);
+    }
+}
 // customer edit & update
 
 const editCustomer=async(req,res)=>{
     try{
 
        const id=req.query.id;
-       const userData=await ContactManagement.findById({_id:id}).populate('group service_offered contact_source buisness_sector');
-       const taskHistory = await TaskHistory.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity task_id assign_task_to');
-       const task = await Task.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity assign_task_to contact_source')
+       const userData=await ContactManagement.findById({_id:id }).populate('group service_offered contact_source buisness_sector');
+       const taskHistory = await TaskHistory.find({ selected_list: req.query.id,is_deleted:0  }).populate('sales_phase action business_opportunity task_id assign_task_to');
+       const task = await Task.find({ selected_list: req.query.id,is_deleted:0  }).populate('sales_phase action business_opportunity assign_task_to contact_source')
        
        let { _doc: userDetails } = userData;
        // console.log(userDetails)
@@ -388,22 +443,31 @@ const updateCustomer=async(req,res)=>{
         company_name:req.body.company_name,email:req.body.email,primary_contact_number:req.body.primary_contact_number,secondary_contact_number:req.body.secondary_contact_number,service_offered:req.body.service_offered,
         group:req.body.group,contact_source:req.body.contact_source,buisness_sector:req.body.buisness_sector,status:req.body.status,address1:req.body.address1,address2:req.body.address2,taluka:req.body.taluka,village:req.body.village,zipcode:req.body.zipcode,
         city:req.body.city,state:req.body.state,country:req.body.country
-    }}).then(async (userData) => {
-        const id=userData._id;
-        const userData1= await GroupContact.deleteMany({contact_id:id});
-        return userData;
-        
-    }).then(async (userData) => {
-        for(var i=0;i<req.body.group.length;i++){
-        const all = new GroupContact({
-            contact_id:req.params.id,
-            group_id:req.body.group[i]
-           
-        })
-        const data = await all.save()
-       
-    }
+    }})
+    .then(async (groupData) => {
+                   
+        await ContactGroup.deleteMany({ contact_id: groupData._id });
+        if(req.body.group && req.body.group.length >0){
+      
+            for(var i=0;i<req.body.group.length;i++){
+                const all = new ContactGroup({
+                    group_id:req.body.group[i],
+                    contact_id:groupData._id
+                
+                })
+                const groupgroup = await all.save()
+                
+                // const alls = new GroupContact ({
+                //     group_id:req.body.group[i],
+                //     contact_id:groupData._id
+                
+                // })
+                // const groupgroups = await alls.save()
+            }
+          
+        }
     });
+
    
    res.status(200).send({sucess:true,msg:"sucessfully updated",group:userData});
 
@@ -464,7 +528,7 @@ const exportCustomer=async(req,res)=>{
     try{
       
       
-          const userData=await ContactManagement.find({type:"customer"})
+          const userData=await ContactManagement.find({type:"customer",is_deleted:0})
        
       
           try {
@@ -540,7 +604,9 @@ module.exports={
     allCustomer,
     importCustomer,
     exportCustomer,
-    updateCustomerGroup
+    updateCustomerGroup,
+    undoCustomer,
+    softDeleteCustomer
     
 }
 

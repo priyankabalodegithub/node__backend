@@ -64,6 +64,10 @@ task_route.get('/exist-taskaction',taskManagementController.actionExist);
 task_route.get('/export-task',taskManagementController.exportTask);
 task_route.put('/updateTaskArchive/:id',taskManagementController.updateTaskArchiveUnarchive);
 
+task_route.put('/undo-task/:id',taskManagementController.undoTask);
+
+task_route.put('/task-delete/:id',taskManagementController.softDeleteTask);
+
 task_route.post('/send-Invoice',upload.single('invoice_file'),taskManagementController.sendInvoiceData);
 task_route.post('/send-quotation',upload.single('quotation_file'),taskManagementController.sendQuotationData);
 

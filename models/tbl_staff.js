@@ -43,6 +43,10 @@ token:{
    type:String,
    default:''
  },
+ is_deleted:{
+   type:Number,
+   default:0
+}
 //  title:[{
 //    type:mongoose.Schema.Types.ObjectId,
 //    ref:'Tbl_Right',  

@@ -116,6 +116,10 @@ task_completed:{
 current_time:{
   type:Date,
   default:new Date()
+},
+is_deleted:{
+  type:Number,
+  default:0
 }
 
 // is_completed:{

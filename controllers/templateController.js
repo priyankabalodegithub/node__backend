@@ -87,7 +87,7 @@ const addTemplatesms=async(req,res)=>{
 const alltemplate=async(req,res)=>{
     try{
 
-        const userData=await Template.find();
+        const userData=await Template.find({is_deleted:0});
     res.status(200).send({success:true,data:userData});
 
     }
@@ -100,7 +100,7 @@ const alltemplate=async(req,res)=>{
 const allwhatsppTemplate=async(req,res)=>{
     try{
 
-        const userData=await Template.find({template_created_for:'whatsApp'});
+        const userData=await Template.find({template_created_for:'whatsApp',is_deleted:0});
     res.status(200).send({success:true,data:userData});
 
     }
@@ -114,7 +114,7 @@ const allwhatsppTemplate=async(req,res)=>{
 const allsmstemplate=async(req,res)=>{
     try{
 
-        const userData=await Template.find({template_created_for:'sms'});
+        const userData=await Template.find({template_created_for:'sms',is_deleted:0});
     res.status(200).send({success:true,data:userData});
 
     }
@@ -144,6 +144,7 @@ const templateList=async(req,res)=>{
             languageFilters=req.query.languageFilters.split(',');            
         }
         const query = {};
+        query.is_deleted=0;
 
         query.type = 'template';
         
@@ -198,8 +199,8 @@ const templateList=async(req,res)=>{
             // imageUrl: path.join('http://', req.get('host'), 'image', details.image)
         };
       })
-      const msgPending = await Template.find({template_created_for:'sms',is_send:1}).countDocuments();
-    const whatsappPending = await Template.find({template_created_for:'whatsApp',is_send:1}).countDocuments();
+      const msgPending = await Template.find({template_created_for:'sms',is_send:1,is_deleted:0}).countDocuments();
+    const whatsappPending = await Template.find({template_created_for:'whatsApp',is_send:1,is_deleted:0}).countDocuments();
       return res.send({ msg: "Posts Fetched successfully", data: result,msgPending:msgPending,whatsappPending:whatsappPending});
        
     }
@@ -224,7 +225,30 @@ const deleteTemplate=async(req,res)=>{
        res.status(400).send(err.message)
     }
 }
-
+// undo Template
+const undoTemplate=async(req,res)=>{
+    try{
+      
+       const userData= await Template.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:0}});
+       res.status(200).send({success:true,msg:"Template can be undo"})
+  
+    }
+    catch(error){
+        res.status(400).send(error.message);
+    }
+  }
+  // soft delete 
+  const softDeleteTemplate=async(req,res)=>{
+    try{
+       
+      const userData1= await Template.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:1}});
+       res.status(200).send({success:true,msg:"Template can be deleted"})
+        }
+  
+    catch(error){
+        res.status(400).send(error.message);
+    }
+  }
 // edit template
 const editTemplate=async(req,res)=>{
     try{
@@ -329,7 +353,7 @@ const exportTemplate=async(req,res)=>{
     try{
       
       
-          const userData=await Template.find()
+          const userData=await Template.find({is_deleted:0})
        
       
           try {
@@ -361,7 +385,9 @@ module.exports={
     allsmstemplate,
     updateArchiveUnarchive,
     exportTemplate,
-    allwhatsppTemplate
+    allwhatsppTemplate,
+    undoTemplate,
+    softDeleteTemplate
     
 }
 

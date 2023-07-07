@@ -82,7 +82,7 @@ const sendMembers=async(req,res)=>{
                 members:req.body.members,
                 is_send:req.body.is_send,
                 when_to_send:req.body.when_to_send,
-                contact_count:req.body.members.length,
+                contact_count:(req.body.members)?(req.body.members.length):0,
                 is_archive:req.body.is_archive
                 
         })
@@ -123,7 +123,7 @@ const sendMembers=async(req,res)=>{
 const sendList=async(req,res)=>{
     try{
 
-        const userData=await Message.find().populate('group_id template_id');
+        const userData=await Message.find({is_deleted:0}).populate('group_id template_id');
     res.status(200).send({success:true,data:userData});
 
     }
@@ -136,7 +136,7 @@ const sendList=async(req,res)=>{
 const sendAll=async(req,res)=>{
     try{
 
-        const userData=await Message.find({is_send:1}).populate('group_id template_id');
+        const userData=await Message.find({is_send:1,is_deleted:0}).populate('group_id template_id');
     res.status(200).send({success:true,data:userData});
 
     }
@@ -148,7 +148,7 @@ const sendAll=async(req,res)=>{
 const scheduleAll=async(req,res)=>{
     try{
 
-        const userData=await Message.find({is_send:0}).populate('group_id template_id');
+        const userData=await Message.find({is_send:0,is_deleted:0}).populate('group_id template_id');
     res.status(200).send({success:true,data:userData});
 
     }
@@ -180,6 +180,7 @@ const messageSend=async(req,res)=>{
             mediaFilters=req.query.mediaFilters.split(',');            
         }
         const query = {};
+        query.is_deleted=0;
 
         query.is_send =1;
         if (groupFilters.length > 0) {
@@ -281,6 +282,7 @@ const messageSendLater=async(req,res)=>{
             mediaFilters=req.query.mediaFilters.split(',');            
         }
         const query = {};
+        query.is_deleted=0;
 
         query.is_send =0;
         if (groupFilters.length > 0) {
@@ -341,6 +343,58 @@ const messageSendLater=async(req,res)=>{
     return res.status(500).json({ msg: "Sorry, something went wrong" });
     }
 }
+
+
+// undo Message
+const undoMessage=async(req,res)=>{
+    try{
+      
+       const userData= await Message.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:0}});
+       await MsgSend.deleteMany({ msg_id: userData._id });
+       const data=(userData.members)?(userData.members.length):0
+       if(data.length>0){
+        for(var i=0; i< data.length;i++){
+           
+                const data = new MsgSend({
+                    msg_id:userData._id,
+                    contact_id:data[i]
+                   
+                })
+                const sendMembers = await data.save()
+    }
+  }
+       res.status(200).send({success:true,msg:"Message can be undo"})
+
+    }
+    catch(error){
+        res.status(400).send(error.message);
+    }
+}
+// soft delete 
+const softDeleteMessage=async(req,res)=>{
+    try{
+       
+       const userData= await Message.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:1}});
+  
+       await MsgSend.deleteMany({ msg_id: userData._id });
+      const data=(userData.members)?(userData.members.length):0
+       if(data.length>0){
+        for(var i=0; i< data.length;i++){
+                const data = new MsgSend({
+                    msg_id:userData._id,
+                    contact_id:data[i]
+                   
+                })
+                const sendMembers = await data.save()
+    }
+}
+       res.status(200).send({success:true,msg:"Message can be deleted"})
+        }
+
+    catch(error){
+        res.status(400).send(error.message);
+    }
+}
 // message edit & update
 
 const editMessage=async(req,res)=>{
@@ -382,9 +436,10 @@ const updateMessage=async(req,res)=>{
                 group_id:req.body.group_id,
                 is_send:req.body.is_send,
                 when_to_send:req.body.when_to_send,
-                contact_count:req.body.contact_count
+                contact_count:(req.body.members)?(req.body.members.length):0,
             }}).then(async (userData) => {
                 await MsgSend.deleteMany({ msg_id:userData._id,});
+                
                 if(req.body.members && req.body.members.length >0){
               
                     for(var i=0;i<req.body.members.length;i++){
@@ -412,7 +467,7 @@ const exportMessage=async(req,res)=>{
     try{
       
       
-          const userData=await Message.find()
+          const userData=await Message.find({is_deleted:0})
        
       
           try {
@@ -459,5 +514,7 @@ module.exports={
     scheduleAll,
     exportMessage,
     updateMessageArchiveUnarchive,
-    deletemessage
+    deletemessage,
+    undoMessage,
+    softDeleteMessage
 }

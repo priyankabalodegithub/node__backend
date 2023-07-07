@@ -129,7 +129,7 @@ const emailExist=async(req,res)=>{
 
     try{
        
-        ContactManagement.find({email:req.query.email})
+        ContactManagement.find({email:req.query.email,is_deleted:0})
         .then(async resp=>{
          if(resp.length!=0){
            return res.status(200).send({success:false,msg:'Email alredy exist'})
@@ -152,7 +152,7 @@ const contactExist=async(req,res)=>{
 
     try{
        
-        ContactManagement.find({primary_contact_number:req.query.primary_contact_number})
+        ContactManagement.find({primary_contact_number:req.query.primary_contact_number,is_deleted:0})
         .then(async resp=>{
          if(resp.length!=0){
            return res.status(200).send({success:false,msg:'contact alredy exist'})
@@ -173,7 +173,7 @@ const contactExist=async(req,res)=>{
 const allLead=async(req,res)=>{
     try{
 
-        const userData=await ContactManagement.find({type:'lead'});
+        const userData=await ContactManagement.find({type:'lead',is_deleted:0});
     res.status(200).send({success:true,data:userData});
 
     }
@@ -215,6 +215,7 @@ const leadList=async(req,res)=>{
         const query = {};
  
         query.type = 'lead';
+        query.is_deleted=0
         
         // console.log(businessFilters);
         if (businessFilters.length > 0) {
@@ -390,15 +391,69 @@ const deleteLead=async(req,res)=>{
     }
 }
 
+// undo lead
+const undoLead=async(req,res)=>{
+    try{
+      
+       const userData= await ContactManagement.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:0}});
+       await ContactGroup.deleteMany({ contact_id: userData._id });
+       if(userData.group && userData.group.length >0){
+     
+           for(var i=0;i<userData.group.length;i++){
+               const all = new ContactGroup({
+                   group_id:userData.group[i],
+                   contact_id:userData._id
+               
+               })
+               const groupgroup = await all.save()
+               
+           }
+         
+       }
+       res.status(200).send({success:true,msg:"Lead can be undo"})
+
+    }
+    catch(error){
+        res.status(400).send(error.message);
+    }
+}
+// soft delete 
+const softDeleteLead=async(req,res)=>{
+    try{
+       
+       const userData= await ContactManagement.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:1}});
+  
+       await ContactGroup.deleteMany({ contact_id: userData._id });
+       if(req.body.group && req.body.group.length >0){
+     
+           for(var i=0;i<req.body.group.length;i++){
+               const all = new ContactGroup({
+                   group_id:req.body.group[i],
+                   contact_id:userData._id
+               
+               })
+               const groupgroup = await all.save()
+               
+           }
+         
+       }
+       res.status(200).send({success:true,msg:"Lead can be deleted"})
+        }
+
+    catch(error){
+        res.status(400).send(error.message);
+    }
+}
+
 // lead edit & update
 
 const editLead=async(req,res)=>{
     try{
 
        const id=req.query.id;
-       const userData=await ContactManagement.findById({_id:id}).populate('group business_opportunity contact_source buisness_sector');
-       const taskHistory = await TaskHistory.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity task_id assign_task_to');
-       const task = await Task.find({ selected_list: req.query.id }).populate('sales_phase action business_opportunity assign_task_to contact_source')
+       const userData=await ContactManagement.findById({_id:id }).populate('group business_opportunity contact_source buisness_sector');
+       const taskHistory = await TaskHistory.find({ selected_list: req.query.id,is_deleted:0  }).populate('sales_phase action business_opportunity task_id assign_task_to');
+       const task = await Task.find({ selected_list: req.query.id,is_deleted:0  }).populate('sales_phase action business_opportunity assign_task_to contact_source')
        
        let { _doc: userDetails } = userData;
         // console.log(userDetails)
@@ -430,7 +485,7 @@ const editLead=async(req,res)=>{
 const updateLead=async(req,res)=>{
     try{
 
-       const userData= await ContactManagement.findByIdAndUpdate({_id:req.params.id},
+       const userData= await ContactManagement.findByIdAndUpdate({_id:req.params.id },
         {$set:
             {first_name:req.body.first_name, 
              last_name:req.body.last_name,
@@ -452,22 +507,31 @@ const updateLead=async(req,res)=>{
            city:req.body.city,
            state:req.body.state,
            country:req.body.country
-        }}).then(async (userData) => {
-            const id=userData._id;
-            const userData1= await GroupContact.deleteMany({contact_id:id});
-            return userData;
-            
-        }).then(async (userData) => {
-            for(var i=0;i<req.body.group.length;i++){
-            const all = new GroupContact({
-                contact_id:req.params.id,
-                group_id:req.body.group[i]
-               
-            })
-            const data = await all.save()
-        }
+        }})
+        .then(async (groupData) => {
+                   
+            await ContactGroup.deleteMany({ contact_id: groupData._id });
+            if(req.body.group && req.body.group.length >0){
+          
+                for(var i=0;i<req.body.group.length;i++){
+                    const all = new ContactGroup({
+                        group_id:req.body.group[i],
+                        contact_id:groupData._id
+                    
+                    })
+                    const groupgroup = await all.save()
+                    
+                    // const alls = new GroupContact ({
+                    //     group_id:req.body.group[i],
+                    //     contact_id:groupData._id
+                    
+                    // })
+                    // const groupgroups = await alls.save()
+                }
+              
+            }
         });
-       
+
        
        res.status(200).send({sucess:true,msg:"sucessfully updated",group:userData})
       
@@ -482,7 +546,7 @@ const exportLeads=async(req,res)=>{
     try{
       
       
-          const userData=await ContactManagement.find({type:"lead"}).populate('group business_opportunity')
+          const userData=await ContactManagement.find({type:"lead",is_deleted:0}).populate('group business_opportunity')
        
       
           try {
@@ -561,5 +625,7 @@ module.exports={
     allLead,
     importLead,
     exportLeads,
-    updateLeadGroup
+    updateLeadGroup,
+    undoLead,
+    softDeleteLead
 }

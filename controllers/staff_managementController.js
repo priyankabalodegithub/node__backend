@@ -151,6 +151,7 @@ const addStaff = async (req, res) => {
                 right_detail: _permissionList.name,
                 staff_id: userData._id,
                 rights_id: childData._id,
+               
               }; 
               
             }
@@ -189,7 +190,7 @@ const verifyLogin=async(req,res)=>{
   try{
       const email=req.body.email;
       const password=req.body.password;
-      const userData=await Staff.findOne({email:email});
+      const userData=await Staff.findOne({email:email,is_deleted:0});
       if(userData){
 
         //  const passwordMatch=await bcrypt.compare(password,userData.password);
@@ -208,6 +209,7 @@ const verifyLogin=async(req,res)=>{
               const tokenData=await create_token(userData._id);
               let permission = await Permission.find({
                 staff_id: userData._id,
+                is_deleted:0
               })
                 // .populate("rights_id")
                 .populate({
@@ -315,7 +317,7 @@ const forgetPassword=async(req,res)=>{
   try{
 
      const email=req.body.email;
-      const userData=await Staff.findOne({email:email});
+      const userData=await Staff.findOne({email:email,is_deleted:0});
 
      if(userData)
      {
@@ -351,7 +353,7 @@ const reset_password=async(req,res)=>{
   try{
 
       const token=req.query.token;
-      const tokenData=await Staff.findOne({token:token});
+      const tokenData=await Staff.findOne({token:token,is_deleted:0});
 
       if(tokenData)
       {
@@ -382,7 +384,7 @@ const emailExist=async(req,res)=>{
 
     try{
        
-        Staff.find({email:req.query.email})
+        Staff.find({email:req.query.email,is_deleted:0})
         .then(async resp=>{
          if(resp.length!=0){
            return res.status(200).send({success:false,msg:'Email alredy exist'})
@@ -405,7 +407,7 @@ const contactExist=async(req,res)=>{
 
     try{
        
-        Staff.find({primary_contact_number:req.query.primary_contact_number})
+        Staff.find({primary_contact_number:req.query.primary_contact_number,is_deleted:0})
         .then(async resp=>{
          if(resp.length!=0){
            return res.status(200).send({success:false,msg:'contact alredy exist'})
@@ -531,6 +533,7 @@ const staffList = async (req, res) => {
     const query = {};
 
     query.user_type = 'user';
+    query.is_deleted=0;
     
 
     if (rightsFilters.length > 0) {
@@ -579,6 +582,7 @@ const staffList = async (req, res) => {
       staffList?.map(async (lst) => {
         let permission = await Permission.find({
           staff_id: lst._id,
+          is_deleted:0
         })
           // .populate("rights_id")
           .populate({
@@ -610,12 +614,14 @@ const staffList = async (req, res) => {
         
           let tasks = await Task.find({
             assign_task_to: lst._id,
+            is_deleted:0
           }).exec();
           const taskAssignList = []
           tasks = tasks.map((task) => {
             task.selected_list.map((selected_contact_list) => {
               ContactManagement.findById({
                 _id: selected_contact_list,
+                is_deleted:0
               }).exec().then((result)=>{
                 if(result){
                   taskAssignList.push(result.first_name+' '+result.last_name);
@@ -626,8 +632,9 @@ const staffList = async (req, res) => {
 
         let totalTask = await Task.find({
           assign_task_to: lst._id,
+          is_deleted:0
         }).countDocuments();
-        let completedTaskCount = await Task.find({ assign_task_to: lst._id, task_status: 3, task_completed: 1 }).countDocuments();
+        let completedTaskCount = await Task.find({ assign_task_to: lst._id, task_status: 3, task_completed: 1,is_deleted:0 }).countDocuments();
         let conversionRate = (completedTaskCount / totalTask) * 100;
         conversionRate = (conversionRate) ? Math.round(conversionRate.toFixed(2)) : 0;
         count=count+conversionRate
@@ -644,8 +651,8 @@ const staffList = async (req, res) => {
         };
       })
     );
-    let totalTasks = await Task.find().countDocuments();
-    let completedTaskCounts = await Task.find({task_status: 3, task_completed: 1 }).countDocuments();
+    let totalTasks = await Task.find({is_deleted:0}).countDocuments();
+    let completedTaskCounts = await Task.find({task_status: 3, task_completed: 1,is_deleted:0 }).countDocuments();
         let conversionRate = (completedTaskCounts / totalTasks) * 100;
         conversionRate = (conversionRate) ? Math.round(conversionRate.toFixed(2)) : 0;
         let percentage=conversionRate+'%'
@@ -665,7 +672,7 @@ const staffList = async (req, res) => {
 const allstaffList=async(req,res)=>{
   try{
 
-      const userData=await Staff.find({user_type:"user"});
+      const userData=await Staff.find({user_type:"user",is_deleted:0});
   res.status(200).send({success:true,data:userData});
 
   }
@@ -717,6 +724,33 @@ const deleteStaff=async(req,res)=>{
   
 }
 
+// undo Staff
+const undoStaff=async(req,res)=>{
+  try{
+    
+     const userData1= await Staff.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:0}});
+     const userData2= await Permission.updateMany({staff_id:req.params.id},{$set:{is_deleted:0}});
+     res.status(200).send({success:true,msg:"Staff can be undo"})
+
+  }
+  catch(error){
+      res.status(400).send(error.message);
+  }
+}
+// soft delete 
+const softDeleteStaff=async(req,res)=>{
+  try{
+     
+    const userData1= await Staff.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:1}});
+    const userData2= await Permission.updateMany({staff_id:req.params.id},{$set:{is_deleted:1}});
+     res.status(200).send({success:true,msg:"Staff can be deleted"})
+      }
+
+  catch(error){
+      res.status(400).send(error.message);
+  }
+}
+
 // staff edit & update
 
 const editStaff=async(req,res)=>{
@@ -724,9 +758,9 @@ const editStaff=async(req,res)=>{
   try{
 
     const id=req.query.id;
-    const userData=await Staff.find({_id:id})
-    const taskHistory = await TaskHistory.find({ assign_task_to: req.query.id }).populate('sales_phase action business_opportunity task_id assign_task_to');
-    const task = await Task.find({ assign_task_to: req.query.id }).populate('sales_phase action business_opportunity assign_task_to contact_source')
+    const userData=await Staff.find({_id:id,is_deleted:0 })
+    const taskHistory = await TaskHistory.find({ assign_task_to: req.query.id,is_deleted:0  }).populate('sales_phase action business_opportunity task_id assign_task_to');
+    const task = await Task.find({ assign_task_to: req.query.id,is_deleted:0  }).populate('sales_phase action business_opportunity assign_task_to contact_source')
     
     const permission = await Permission.find({
       staff_id: id,
@@ -771,7 +805,7 @@ const editStaff=async(req,res)=>{
 const updateStaff=async(req,res)=>{
   try{
 
-     const StaffData= await Staff.findByIdAndUpdate({_id:req.params.id},{$set:{first_name:req.body.first_name, last_name:req.body.last_name,designation:req.body.designation,
+     const StaffData= await Staff.findByIdAndUpdate({_id:req.params.id,is_deleted:0 },{$set:{first_name:req.body.first_name, last_name:req.body.last_name,designation:req.body.designation,
      primary_contact_number:req.body.primary_contact_number,secondary_contact_number:req.body.secondary_contact_number,email:req.body.email,
     }})
     
@@ -810,7 +844,7 @@ const exportStaff=async(req,res)=>{
   try{
     
     
-        const userData=await Staff.find()
+        const userData=await Staff.find({is_deleted:0})
      
     
         try {
@@ -897,7 +931,9 @@ module.exports={
     forgetPassword,
     reset_password,
     exportStaff,
-    allPermissionrights
+    allPermissionrights,
+    softDeleteStaff,
+    undoStaff
   
 }
 

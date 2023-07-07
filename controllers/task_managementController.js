@@ -346,7 +346,7 @@ const addTask = async (req, res) => {
 const allTask=async(req,res)=>{
     try{
 
-        const userData=await Task.find();
+        const userData=await Task.find({is_deleted:0});
 
     res.status(200).send({success:true,data:userData});
 
@@ -386,9 +386,11 @@ const addnextAction=async(req,res)=>{
                 client_lastName: req.body.client_lastName,
                 client_contactNumber:req.body.client_contactNumber,
                 client_email: req.body.client_email,
+               
         })
         const updateAllHistoryData = await TaskHistory.updateMany({
-            task_id: req.body._id
+            task_id: req.body._id,
+            is_deleted:0
         }, {
         $set: {
             next_action: 0,
@@ -399,7 +401,8 @@ const addnextAction=async(req,res)=>{
                 
                const task= await Task.findByIdAndUpdate(
                     {
-                        _id: req.body._id
+                        _id: req.body._id,
+                        is_deleted:0
                     }, {
                     $set: {
                         sales_phase:req.body.sales_phase,
@@ -485,7 +488,7 @@ const taskList = async (req, res) => {
         
 
         const query = {};
-
+         query.is_deleted=0
     
         if (priorityFilter.length > 0) {
             query.set_task_priority = { $in: priorityFilter }
@@ -508,7 +511,7 @@ const taskList = async (req, res) => {
         const pageNumber = parseInt(req.query.pageNumber) || 0;
         const limit = parseInt(req.query.limit) || 4;
         const result = {};
-        const totalPosts = await Task.countDocuments().exec();
+        const totalPosts = await Task.countDocuments(query).exec();
         let startIndex = pageNumber * limit;
         const endIndex = (pageNumber + 1) * limit;
         result.totalPosts = totalPosts;
@@ -518,7 +521,7 @@ const taskList = async (req, res) => {
                 limit: limit,
             };
         }
-        if (endIndex < (await Task.countDocuments().exec())) {
+        if (endIndex < (await Task.countDocuments(query).exec())) {
             result.next = {
                 pageNumber: pageNumber + 1,
                 limit: limit,
@@ -620,7 +623,7 @@ const taskList = async (req, res) => {
             }
 
             // console.log('query', query);
-            let taskHistory = await TaskHistory.find({task_id:data._id})
+            let taskHistory = await TaskHistory.find({task_id:data._id,is_deleted:0})
             
 
             let selected_list = query ? query.exec() : [];
@@ -646,9 +649,9 @@ const taskList = async (req, res) => {
 
         }))
 
-        const newData = await Task.find({task_status:1}).countDocuments();
-        const progressData = await Task.find({task_status:2}).countDocuments();
-        const completeData = await Task.find({task_status:3}).countDocuments();
+        const newData = await Task.find({task_status:1,is_deleted:0}).countDocuments();
+        const progressData = await Task.find({task_status:2,is_deleted:0}).countDocuments();
+        const completeData = await Task.find({task_status:3,is_deleted:0}).countDocuments();
         
         result.rowsPerPage = limit;
         return res.send({ msg: "Posts Fetched successfully", data: { ...result, data: list, newData:newData, progressData:progressData,
@@ -668,12 +671,38 @@ const deleteTask = async (req, res) => {
 
         const id = req.query.id;
         await Task.deleteOne({ _id: id });
-        await TaskHistory.deleteMany({task_id:id})
+        await TaskHistory.deleteMany({task_id:id,is_deleted:0})
         res.status(200).send({ success: true, msg: "Task can be deleted" })
 
     }
     catch (err) {
         res.status(400).send(err.message)
+    }
+}
+// undo task
+const undoTask=async(req,res)=>{
+    try{
+      
+       const userData1= await Task.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:0}});
+       const userData2= await TaskHistory.updateMany({task_id:req.params.id},{$set:{is_deleted:0}});
+       res.status(200).send({success:true,msg:"Task can be undo"})
+
+    }
+    catch(error){
+        res.status(400).send(error.message);
+    }
+}
+// soft delete 
+const softDeleteTask=async(req,res)=>{
+    try{
+       
+       const userData1= await Task.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:1}});
+       const userData2= await TaskHistory.updateMany({task_id:req.params.id},{$set:{is_deleted:1}});
+       res.status(200).send({success:true,msg:"Task can be deleted"})
+        }
+
+    catch(error){
+        res.status(400).send(error.message);
     }
 }
 // edit task
@@ -696,6 +725,7 @@ const editTask = async (req, res) => {
             // console.log(sortObject);
         const taskHistory = await TaskHistory.find({
             task_id: id,
+            
             
         }).populate('sales_phase action assign_task_to')
         .sort(sortObject)
@@ -887,6 +917,7 @@ const editTaskInfo=async(req,res)=>{
                  client_contactNumber: req.body.client_contactNumber,
                  client_email: req.body.client_email,
                  level_of_urgency: req.body.level_of_urgency,
+                 
        }}).then(async (updateRes) =>{
             
            const task= await Task.findByIdAndUpdate(
@@ -946,7 +977,7 @@ const exportTask=async(req,res)=>{
     try{
       
       
-          const userData=await Task.find()
+          const userData=await Task.find({is_deleted:0})
        
       
           try {
@@ -1159,6 +1190,8 @@ module.exports = {
     getTaskHistoryByID,
     sendInvoiceData,
     sendQuotationData,
-    updateTaskArchiveUnarchive
+    updateTaskArchiveUnarchive,
+    softDeleteTask,
+    undoTask
 }
 

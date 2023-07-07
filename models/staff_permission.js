@@ -15,6 +15,10 @@ staff_id:{
  },
  permission:{
     type:Boolean
+ },
+ is_deleted:{
+   type:Number,
+   default:0
  }
 
 }

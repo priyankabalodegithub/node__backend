@@ -53,7 +53,11 @@ const messageSchema=new mongoose.Schema({
  date_time:{
    type:Date,
    default:new Date()
- }
+ },
+ is_deleted:{
+  type:Number,
+  default:0
+}
      
    },
    {timestamps:true}

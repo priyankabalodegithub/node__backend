@@ -55,6 +55,10 @@ contact_route.put('/update-contactGroup/:id',contactController.updateContactGrou
 
 contact_route.post('/add-update-bulk-records',contactController.addUpdateBulkRecords );
 
+contact_route.put('/undo-contact/:id',contactController.undoContact);
+
+contact_route.put('/contact-delete/:id',contactController.softDeleteContact);
+
 contact_route.get('/test',jwtHelper,function(req,res){
     res.status(200).send({success:true,msg:"authentication"})
 })

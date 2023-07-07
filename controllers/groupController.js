@@ -5,12 +5,13 @@ const GroupContact=require('../models/tbl_groupContact');
 
 const Blob = require('blob');
 const config=require("../config/config");
-
+const ContactManagement = require('../models/tbl_contactManagement');
 const jwt=require('jsonwebtoken');
 const Country=require('../models/country');
 const State=require('../models/state');
 const City=require('../models/city')
 const excelJS=require("exceljs");
+const ContactGroup = require('../models/tbl_allGroupMember');
 const getCountries=async(req,res)=>{
     try{
         const countries=await Country.find({})
@@ -53,7 +54,7 @@ const addGroup=async(req,res)=>{
                 group_name:req.body.group_name,
                 group_description:req.body. group_description,
                 status:req.body.status,
-                members:req.body.members   
+                members:req.body.members?(req.body.members):[]   
                 
         })
             const userData=await group.save()
@@ -118,8 +119,15 @@ const updateGroupMember=async(req,res)=>{
                         })
                         const groupMembers = await all.save()
                     }
-                }
+                }  
+                const allmember=await ContactGroup.find({group_id:req.params.id });
+                for(i=0;i<allmember.length;i++){
+                 groupData.members.push(allmember[i].contact_id)
+                }   
+
             });
+           
+            
 
             if(groupData)
             {   
@@ -141,7 +149,7 @@ const grouptotal=async(req,res)=>
 {
     try{
 
-        const userData=await Group.find({ is_group:1});
+        const userData=await Group.find({ is_group:1,is_deleted:0});
     res.status(200).send({success:true,data:userData});
 
     }
@@ -151,17 +159,10 @@ const grouptotal=async(req,res)=>
 
 }
 const allGroupList=async(req,res)=>{
-    // try{
-
-    //     const userData=await Group.find();
-    // res.status(200).send({success:true,data:userData});
-
-    // }
-    // catch(err){
-    //     res.status(400).send(err.message);
-    // }
+   
     try {
         let query = {};
+        query.is_deleted=0;
         let search = '';
         if (req.query.search) {
             search = req.query.search;
@@ -200,7 +201,7 @@ const groupList=async(req,res)=>{
         const pageNumber = parseInt(req.query.pageNumber) || 0;
         const limit = parseInt(req.query.limit) || 4;
         const result = {};
-        const totalPosts = await Group.countDocuments().exec();
+        const totalPosts = await Group.countDocuments({is_deleted:0}).exec();
         let startIndex = pageNumber * limit;
         const endIndex = (pageNumber + 1) * limit;
         result.totalPosts = totalPosts;
@@ -210,13 +211,13 @@ const groupList=async(req,res)=>{
             limit: limit,
           };
         }
-        if (endIndex < (await Group.countDocuments().exec())) {
+        if (endIndex < (await Group.countDocuments({is_deleted:0}).exec())) {
           result.next = {
             pageNumber: pageNumber + 1,
             limit: limit,
           };
         }
-        result.data = await Group.find()
+        result.data = await Group.find({is_deleted:0})
         // .sort("-_id")
         .sort(sortObject)
         .find({
@@ -260,15 +261,26 @@ const deleteGroup=async(req,res)=>{
 // user profile edit & update
 
 const editProfileLoad=async(req,res)=>{
+    
     try{
 
        const id=req.query.id;
-       const userData=await Group.findById({_id:id});
+       const userData=await Group.findById({_id:id });
+       const allmember=await ContactGroup.find({group_id:id });
+       for(i=0;i<allmember.length;i++){
+        userData.members.push(allmember[i].contact_id)
+       }
+       let { _doc: userDetails } = userData;
+      
+       const taskList = {
+           ...userDetails,
+           
+       }
 
        if(userData){
 
         
-        res.status(200).send({success:true,group:userData})
+        res.status(200).send({success:true,group:taskList})
 
        }
        else{
@@ -282,12 +294,65 @@ const editProfileLoad=async(req,res)=>{
     }
 }
 
+// undo group
+const undoUser=async(req,res)=>{
+    try{
+      
+       const userData= await Group.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:0}});
+       await GroupContact.deleteMany({ group_id: userData._id });
+       if(userData.members && userData.members.length >0){
+     
+           for(var i=0;i<userData.members.length;i++){
+               const all = new GroupContact({
+                   contact_id:userData.members[i],
+                   group_id:userData._id
+               
+               })
+               const groupMembers = await all.save()
+           }
+       }
+       res.status(200).send({sucess:true,msg:"Group can be undo"})
+
+    }
+    catch(error){
+        res.status(400).send(error.message);
+    }
+}
+// soft delete 
+const softDeleteGroup=async(req,res)=>{
+    try{
+        const userData=await Group.findById({_id:req.params.id})
+        if(userData.count==0){
+       const userData= await Group.findByIdAndUpdate({_id:req.params.id},{$set:{is_deleted:1}});
+       await GroupContact.deleteMany({ group_id: userData._id });
+       if(req.body.members && req.body.members.length >0){
+     
+           for(var i=0;i<req.body.members.length;i++){
+               const all = new GroupContact({
+                   contact_id:req.body.members[i],
+                   group_id:userData._id
+               
+               })
+               const groupMembers = await all.save()
+           }
+       }
+       res.status(200).send({success:true,msg:"Group can be deleted"})
+        }else{
+            res.status(200).send({success:false,msg:"you don't have delete these group"}) 
+        }
+
+    }
+    catch(error){
+        res.status(400).send(error.message);
+    }
+}
+
 // update profile
 
 const updateProfile=async(req,res)=>{
     try{
 
-       const userData= await Group.findByIdAndUpdate({_id:req.params.id},{$set:{group_name:req.body.group_name, group_description:req.body.group_description,
+       const userData= await Group.findByIdAndUpdate({_id:req.params.id },{$set:{group_name:req.body.group_name, group_description:req.body.group_description,
         status:req.body.status,
         // members:req.body.members  
     }});
@@ -303,7 +368,7 @@ const updateProfile=async(req,res)=>{
 const exportContacts=async(req,res)=>{
     try{
       
-      const userData=await Group.find({is_group:1})
+      const userData=await Group.find({is_group:1,is_deleted:0})
    
       try {
         
@@ -326,7 +391,7 @@ const exportContacts=async(req,res)=>{
 const groupExist=async(req,res)=>{
 
     try{
-        Group.find({group_name:req.query.group_name})
+        Group.find({group_name:req.query.group_name,is_deleted:0})
         .then(async resp=>{
         //   console.log(resp)
          if(resp.length!=0){
@@ -358,6 +423,8 @@ module.exports={
     exportContacts,
     groupExist,
     allGroupList,
-    updateGroupMember
+    updateGroupMember,
+    undoUser,
+    softDeleteGroup,
     
 }

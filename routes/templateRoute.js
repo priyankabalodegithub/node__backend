@@ -39,7 +39,8 @@ const fileFilter = (req,file,cb) => {
     else if(file.fieldname === "document"){
         (file.mimetype==='application/msword' 
             || file.mimetype==='application/vnd.ms-excel'
-            ||  file.mimetype==='application/pdf')
+            ||  file.mimetype==='application/pdf'
+            ||  file.mimetype==='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' )
         ? cb(null,true)
         : cb(null,false);
     }
@@ -64,6 +65,8 @@ template_route.put('/edit-template/:id',upload,docValidation,templateController.
 template_route.put('/edit-templateSms/:id',templateController.updateTemplateSms);
 template_route.put('/updateArchive/:id',templateController.updateArchiveUnarchive);
 
+template_route.put('/undo-template/:id',templateController.undoTemplate);
+template_route.put('/template-delete/:id',templateController.softDeleteTemplate);
 template_route.get('/language-list',templateController.languageList);
 template_route.get('/export-template',templateController.exportTemplate);
 

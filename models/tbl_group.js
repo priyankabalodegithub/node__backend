@@ -27,7 +27,12 @@ is_group:{
 count:{
    type:Number,
    default:0
-}
+},
+is_deleted:{
+   type:Number,
+   default:0
+},
+
   
 },
 {timestamps:true}

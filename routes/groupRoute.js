@@ -48,6 +48,10 @@ group_route.get('/edit-user',groupController.editProfileLoad);
 
 group_route.put('/edit-user/:id',groupController.updateProfile);
 
+group_route.put('/undo-group/:id',groupController.undoUser);
+
+group_route.put('/group-delete/:id',groupController.softDeleteGroup);
+
 group_route.get('/get-countries',groupController.getCountries);
 group_route.get('/get-states',groupController.getStates);
 group_route.get('/get-cities',groupController.getCities)

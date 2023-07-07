@@ -13,7 +13,7 @@ const contactSourceGraph=async(req,res)=>{
     try{
         const sourceData =await Source.find();
         const allData = sourceData.map(async({_id, name}) => {
-            const data =  await Task.find({contact_source: _id});
+            const data =  await Task.find({contact_source: _id,is_deleted:0});
 
             return {
                 name,
@@ -45,7 +45,7 @@ const audiencePattern=async(req,res)=>{
     try{
         const audienceData =await DealLost.find();
         const allData = audienceData.map(async({_id, dealLostReason}) => {
-            const data =  await TaskHistory.find({reason_for_dealLost: dealLostReason});
+            const data =  await TaskHistory.find({reason_for_dealLost: dealLostReason,is_deleted:0});
 
             return {
                 dealLostReason,
@@ -71,6 +71,7 @@ const audiencePattern=async(req,res)=>{
 const salesoverview=async(req,res)=>{
     try{
         const query = {};
+        query.is_deleted=0
        
         var businessFilters=[];
         var staffFilters=[];
@@ -92,7 +93,7 @@ const salesoverview=async(req,res)=>{
         const salesData =await Sales.find();
        if(req.query.businessFilters===''&& (req.query.staffFilters===''||req.query.staffFilters==='undefined'||req.query.staffFilters==='null')){
         const allData = salesData.map(async({_id, name}) => {
-            const data =  await Task.find({sales_phase: _id});
+            const data =  await Task.find({sales_phase: _id,is_deleted:0});
             return {
                 name,
                 count: data?.length,
@@ -100,16 +101,16 @@ const salesoverview=async(req,res)=>{
             }
         })
     
-        const totcoldData=await Task.find({lead_status:1}).countDocuments();
-        const completecoldData=await Task.find({lead_status:1,task_completed:1}).countDocuments();;
+        const totcoldData=await Task.find({lead_status:1,is_deleted:0}).countDocuments();
+        const completecoldData=await Task.find({lead_status:1,task_completed:1,is_deleted:0}).countDocuments();;
         const coldAvarage= completecoldData>0 && totcoldData>0 ? (completecoldData/totcoldData)*100:0;
 
-        const totwarmData=await Task.find({lead_status:2}).countDocuments();
-        const completewarmData=await Task.find({lead_status:2,task_completed:1}).countDocuments();
+        const totwarmData=await Task.find({lead_status:2,is_deleted:0}).countDocuments();
+        const completewarmData=await Task.find({lead_status:2,task_completed:1,is_deleted:0}).countDocuments();
         const warmAvarage=completewarmData>0 && totwarmData>0 ? (completewarmData/totwarmData)*100:0;
 
-        const tothotData=await Task.find({lead_status:3}).countDocuments();
-        const completehotData=await Task.find({lead_status:3,task_completed:1}).countDocuments();
+        const tothotData=await Task.find({lead_status:3,is_deleted:0}).countDocuments();
+        const completehotData=await Task.find({lead_status:3,task_completed:1,is_deleted:0}).countDocuments();
         const hotAvarage= completehotData>0 && tothotData>0 ?(completehotData/tothotData)*100:0;
     
         Promise.all(allData).then((data) => {
@@ -119,7 +120,7 @@ const salesoverview=async(req,res)=>{
     
     }else if(req.query.staffFilters===''|| req.query.staffFilters==='undefined'||req.query.staffFilters==='null'){
         const allData = salesData.map(async({_id, name}) => {
-            const data =  await Task.find({sales_phase: _id,business_opportunity:query.business_opportunity});
+            const data =  await Task.find({sales_phase: _id,business_opportunity:query.business_opportunity,is_deleted:0});
             return {
                 name,
                 count: data?.length,
@@ -127,16 +128,16 @@ const salesoverview=async(req,res)=>{
             }
         })
     
-        const totcoldData=await Task.find({lead_status:1,business_opportunity:query.business_opportunity}).countDocuments();
-        const completecoldData=await Task.find({lead_status:1,task_completed:1,business_opportunity:query.business_opportunity}).countDocuments();;
+        const totcoldData=await Task.find({lead_status:1,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();
+        const completecoldData=await Task.find({lead_status:1,task_completed:1,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();;
         const coldAvarage= completecoldData>0 && totcoldData>0 ? (completecoldData/totcoldData)*100:0;
 
-        const totwarmData=await Task.find({lead_status:2,business_opportunity:query.business_opportunity}).countDocuments();
-        const completewarmData=await Task.find({lead_status:2,task_completed:1,business_opportunity:query.business_opportunity}).countDocuments();
+        const totwarmData=await Task.find({lead_status:2,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();
+        const completewarmData=await Task.find({lead_status:2,task_completed:1,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();
         const warmAvarage=completewarmData>0 && totwarmData>0 ? (completewarmData/totwarmData)*100:0;
 
-        const tothotData=await Task.find({lead_status:3,business_opportunity:query.business_opportunity}).countDocuments();
-        const completehotData=await Task.find({lead_status:3,task_completed:1,business_opportunity:query.business_opportunity}).countDocuments();
+        const tothotData=await Task.find({lead_status:3,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();
+        const completehotData=await Task.find({lead_status:3,task_completed:1,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();
         const hotAvarage= completehotData>0 && tothotData>0 ?(completehotData/tothotData)*100:0;
     
         Promise.all(allData).then((data) => {
@@ -146,7 +147,7 @@ const salesoverview=async(req,res)=>{
     }else if((req.query.businessFilters===''||req.query.businessFilters==='undefined'||req.query.businessFilters==='null')){
 
         const allData = salesData.map(async({_id, name}) => {
-            const data =  await Task.find({sales_phase: _id,assign_task_to:query.assign_task_to});
+            const data =  await Task.find({sales_phase: _id,assign_task_to:query.assign_task_to,is_deleted:0});
             return {
                 name,
                 count: data?.length,
@@ -154,16 +155,16 @@ const salesoverview=async(req,res)=>{
             }
         })
     
-        const totcoldData=await Task.find({lead_status:1,assign_task_to:query.assign_task_to}).countDocuments();
-        const completecoldData=await Task.find({lead_status:1,task_completed:1,assign_task_to:query.assign_task_to}).countDocuments();;
+        const totcoldData=await Task.find({lead_status:1,assign_task_to:query.assign_task_to,is_deleted:0}).countDocuments();
+        const completecoldData=await Task.find({lead_status:1,task_completed:1,assign_task_to:query.assign_task_to,is_deleted:0}).countDocuments();;
         const coldAvarage= completecoldData>0 && totcoldData>0 ? (completecoldData/totcoldData)*100:0;
 
-        const totwarmData=await Task.find({lead_status:2,assign_task_to:query.assign_task_to}).countDocuments();
-        const completewarmData=await Task.find({lead_status:2,task_completed:1,assign_task_to:query.assign_task_to}).countDocuments();
+        const totwarmData=await Task.find({lead_status:2,assign_task_to:query.assign_task_to,is_deleted:0}).countDocuments();
+        const completewarmData=await Task.find({lead_status:2,task_completed:1,assign_task_to:query.assign_task_to,is_deleted:0}).countDocuments();
         const warmAvarage=completewarmData>0 && totwarmData>0 ? (completewarmData/totwarmData)*100:0;
 
-        const tothotData=await Task.find({lead_status:3,assign_task_to:query.assign_task_to}).countDocuments();
-        const completehotData=await Task.find({lead_status:3,task_completed:1,assign_task_to:query.assign_task_to}).countDocuments();
+        const tothotData=await Task.find({lead_status:3,assign_task_to:query.assign_task_to,is_deleted:0}).countDocuments();
+        const completehotData=await Task.find({lead_status:3,task_completed:1,assign_task_to:query.assign_task_to,is_deleted:0}).countDocuments();
         const hotAvarage= completehotData>0 && tothotData>0 ?(completehotData/tothotData)*100:0;
     
         Promise.all(allData).then((data) => {
@@ -172,7 +173,7 @@ const salesoverview=async(req,res)=>{
         })
     }else if((req.query.staffFilters!==''|| req.query.staffFilters!=='undefined'||req.query.staffFilters!=='null')&&(req.query.staffFilters!==''|| req.query.staffFilters!=='undefined'||req.query.staffFilters!=='null')){
         const allData = salesData.map(async({_id, name}) => {
-            const data =  await Task.find({sales_phase: _id,business_opportunity:query.business_opportunity,assign_task_to:query.assign_task_to});
+            const data =  await Task.find({sales_phase: _id,business_opportunity:query.business_opportunity,assign_task_to:query.assign_task_to,is_deleted:0});
             return {
                 name,
                 count: data?.length,
@@ -180,16 +181,16 @@ const salesoverview=async(req,res)=>{
             }
         })
     
-        const totcoldData=await Task.find({lead_status:1,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity}).countDocuments();
-        const completecoldData=await Task.find({lead_status:1,task_completed:1,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity}).countDocuments();;
+        const totcoldData=await Task.find({lead_status:1,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();
+        const completecoldData=await Task.find({lead_status:1,task_completed:1,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();;
         const coldAvarage= completecoldData>0 && totcoldData>0 ? (completecoldData/totcoldData)*100:0;
 
-        const totwarmData=await Task.find({lead_status:2,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity}).countDocuments();
-        const completewarmData=await Task.find({lead_status:2,task_completed:1,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity}).countDocuments();
+        const totwarmData=await Task.find({lead_status:2,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();
+        const completewarmData=await Task.find({lead_status:2,task_completed:1,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();
         const warmAvarage=completewarmData>0 && totwarmData>0 ? (completewarmData/totwarmData)*100:0;
 
-        const tothotData=await Task.find({lead_status:3,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity}).countDocuments();
-        const completehotData=await Task.find({lead_status:3,task_completed:1,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity}).countDocuments();
+        const tothotData=await Task.find({lead_status:3,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();
+        const completehotData=await Task.find({lead_status:3,task_completed:1,assign_task_to:query.assign_task_to,business_opportunity:query.business_opportunity,is_deleted:0}).countDocuments();
         const hotAvarage= completehotData>0 && tothotData>0 ?(completehotData/tothotData)*100:0;
     
         Promise.all(allData).then((data) => {
@@ -211,6 +212,7 @@ const taskOverview=async(req,res)=>{
         const actionData =await Action.find();
         
         const query = {};
+        query.is_deleted=0
        
         var businessFilters=[];
         var staffFilters=[];
@@ -231,9 +233,9 @@ const taskOverview=async(req,res)=>{
         
       if(req.query.businessFilters==''&& req.query.staffFilters==''){
         const allData = actionData.map(async({_id, action}) => {
-            const New =  await TaskHistory.find({action: _id,task_status:1,is_completed:0,});
-            const progress =  await TaskHistory.find({action: _id,task_status:2,is_completed:0,});
-            const completed =  await TaskHistory.find({action: _id,task_status:3,is_completed:0,task_completed:1,});
+            const New =  await TaskHistory.find({action: _id,task_status:1,is_completed:0,is_deleted:0});
+            const progress =  await TaskHistory.find({action: _id,task_status:2,is_completed:0,is_deleted:0});
+            const completed =  await TaskHistory.find({action: _id,task_status:3,is_completed:0,task_completed:1,is_deleted:0});
 
             return {
                New:{
@@ -259,9 +261,9 @@ const taskOverview=async(req,res)=>{
     }else  if(req.query.staffFilters===''){
        
             const allData = actionData.map(async({_id, action}) => {
-                const New =  await TaskHistory.find({action: _id,task_status:1,is_completed:0,business_opportunity:query.business_opportunity});
-                const progress =  await TaskHistory.find({action: _id,task_status:2,is_completed:0,business_opportunity:query.business_opportunity});
-                const completed =  await TaskHistory.find({action: _id,task_status:3,is_completed:0,task_completed:1,business_opportunity:query.business_opportunity});
+                const New =  await TaskHistory.find({action: _id,task_status:1,is_completed:0,business_opportunity:query.business_opportunity,is_deleted:0});
+                const progress =  await TaskHistory.find({action: _id,task_status:2,is_completed:0,business_opportunity:query.business_opportunity,is_deleted:0});
+                const completed =  await TaskHistory.find({action: _id,task_status:3,is_completed:0,task_completed:1,business_opportunity:query.business_opportunity,is_deleted:0});
     
                 return {
                    New:{
@@ -288,9 +290,9 @@ const taskOverview=async(req,res)=>{
           
     }else if(req.query.businessFilters===''){
         const allData = actionData.map(async({_id, action}) => {
-            const New =  await TaskHistory.find({action: _id,task_status:1,is_completed:0,assign_task_to:query.assign_task_to});
-            const progress =  await TaskHistory.find({action: _id,task_status:2,is_completed:0,assign_task_to:query.assign_task_to});
-            const completed =  await TaskHistory.find({action: _id,task_status:3,is_completed:0,task_completed:1,assign_task_to:query.assign_task_to});
+            const New =  await TaskHistory.find({action: _id,task_status:1,is_completed:0,assign_task_to:query.assign_task_to,is_deleted:0});
+            const progress =  await TaskHistory.find({action: _id,task_status:2,is_completed:0,assign_task_to:query.assign_task_to,is_deleted:0});
+            const completed =  await TaskHistory.find({action: _id,task_status:3,is_completed:0,task_completed:1,assign_task_to:query.assign_task_to,is_deleted:0});
 
             return {
                New:{
@@ -316,9 +318,9 @@ const taskOverview=async(req,res)=>{
     
     }else if(req.query.businessFilters!=''&& req.query.staffFilters!=''){
         const allData = actionData.map(async({_id, action}) => {
-            const New =  await TaskHistory.find({action: _id,task_status:1,is_completed:0,business_opportunity:query.business_opportunity,assign_task_to:query.assign_task_to});
-            const progress =  await TaskHistory.find({action: _id,task_status:2,is_completed:0,business_opportunity:query.business_opportunity,assign_task_to:query.assign_task_to});
-            const completed =  await TaskHistory.find({action: _id,task_status:3,is_completed:0,task_completed:1,business_opportunity:query.business_opportunity,assign_task_to:query.assign_task_to});
+            const New =  await TaskHistory.find({action: _id,task_status:1,is_completed:0,business_opportunity:query.business_opportunity,assign_task_to:query.assign_task_to,is_deleted:0});
+            const progress =  await TaskHistory.find({action: _id,task_status:2,is_completed:0,business_opportunity:query.business_opportunity,assign_task_to:query.assign_task_to,is_deleted:0});
+            const completed =  await TaskHistory.find({action: _id,task_status:3,is_completed:0,task_completed:1,business_opportunity:query.business_opportunity,assign_task_to:query.assign_task_to,is_deleted:0});
 
             return {
                New:{
@@ -360,6 +362,7 @@ const leadConversion=async(req,res)=>{
         // if (req.query.search) {
         // {_id: '642ac1ac1076a151c761e9ae'}
         let query = {};
+        query.is_deleted=0
         if(req.query.staff_id){
             query._id = req.query.staff_id;
         }
@@ -367,6 +370,7 @@ const leadConversion=async(req,res)=>{
         const staffData = await Staff.find(query);
         const allData = staffData.map(async({_id, first_name, last_name}) => {
             const task_query = {};
+            task_query.is_deleted=0;
             var businessFilters=[];
             if(req.query.business_filters && req.query.business_filters != "null"){
                 businessFilters=req.query.business_filters.split(',');
@@ -431,6 +435,7 @@ const leadConversion=async(req,res)=>{
 const satffPerformanceGraph=async(req,res)=>{
     try{
         let query = {};
+        query.is_deleted=0;
         let business_query = {};
         if(req.query.staff_id){
             query._id = req.query.staff_id;
@@ -439,6 +444,7 @@ const satffPerformanceGraph=async(req,res)=>{
         const staffData = await Staff.find(query);
         const allData = staffData.map(async({_id, first_name, last_name}) => {
             const task_query = {};
+            task_query.is_deleted=0;
             var businessFilters=[];
             if(req.query.business_filters && req.query.business_filters != "null"){
                 businessFilters=req.query.business_filters.split(',');
@@ -481,7 +487,7 @@ const satffPerformanceGraph=async(req,res)=>{
         const businessOpportunityData = await BusinessOpportunity.find(business_query);
         const allBusinessOpportunityData = businessOpportunityData.map(async({_id, title}) => {
             const task_query = {};
-            
+            task_query.is_deleted=0;
             task_query.business_opportunity = { $in: _id }
 
             if(req.query.staff_id){

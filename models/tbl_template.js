@@ -36,9 +36,12 @@ is_archive:{
 },
 type:{
    type:String,
-   default:'template'
-  
-}
+   default:'template' 
+},
+is_deleted:{
+   type:Number,
+   default:0
+ }
   
 },
 {timestamps:true});

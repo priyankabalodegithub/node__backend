@@ -53,6 +53,8 @@ staff_route.post('/forget',staffManagementController.forgetPassword);
 staff_route.post('/reset-password',staffManagementController.reset_password);
 
 staff_route.get('/export-staff',staffManagementController.exportStaff);
+staff_route.put('/undo-staff/:id',staffManagementController.undoStaff);
+staff_route.put('/staff-delete/:id',staffManagementController.softDeleteStaff);
 
 
 staff_route.get('/tests',jwtHelper,function(req,res){

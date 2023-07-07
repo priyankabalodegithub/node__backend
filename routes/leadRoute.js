@@ -53,6 +53,8 @@ lead_route.get('/exist-leadContact',leadController.contactExist);
 
 lead_route.get('/export-lead',leadController.exportLeads);
 lead_route.put('/update-leadtGroup/:id',leadController.updateLeadGroup)
+lead_route.put('/undo-lead/:id',leadController.undoLead);
+lead_route.put('/lead-delete/:id',leadController.softDeleteLead);
 
 lead_route.get('/test',jwtHelper,function(req,res){
     res.status(200).send({success:true,msg:"authentication"})

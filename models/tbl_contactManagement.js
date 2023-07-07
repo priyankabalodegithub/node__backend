@@ -117,6 +117,10 @@ customerType:{
   default:"Existing"
   
 },
+is_deleted:{
+   type:Number,
+   default:0
+}
   
 },
 {timestamps:true}

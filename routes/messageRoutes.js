@@ -23,5 +23,7 @@ message_route.put('/edit-message/:id',messageController.updateMessage);
 message_route.put('/updateMessageArchive/:id',messageController.updateMessageArchiveUnarchive);
 
 message_route.get('/export-message',messageController.exportMessage);
+message_route.put('/undo-message/:id',messageController.undoMessage);
+message_route.put('/message-delete/:id',messageController.softDeleteMessage);
 
 module.exports=message_route;

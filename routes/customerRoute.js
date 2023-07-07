@@ -46,7 +46,11 @@ customer_route.get('/exist-customerEmail',customerController.emailExist);
 customer_route.get('/exist-customerContact',customerController.contactExist);
 
 customer_route.get('/export-customer',customerController.exportCustomer);
-customer_route.put('/update-customertGroup/:id',customerController.updateCustomerGroup)
+customer_route.put('/update-customertGroup/:id',customerController.updateCustomerGroup);
+
+customer_route.put('/undo-customer/:id',customerController.undoCustomer);
+customer_route.put('/customer-delete/:id',customerController.softDeleteCustomer);
+
 
 customer_route.get('/test',jwtHelper,function(req,res){
     res.status(200).send({success:true,msg:"authentication"})
