@@ -266,10 +266,10 @@ const editProfileLoad=async(req,res)=>{
 
        const id=req.query.id;
        const userData=await Group.findById({_id:id });
-       const allmember=await ContactGroup.find({group_id:id });
-       for(i=0;i<allmember.length;i++){
-        userData.members.push(allmember[i].contact_id)
-       }
+    //    const allmember=await ContactGroup.find({group_id:id });
+    //    for(i=0;i<allmember.length;i++){
+    //     userData.members.push(allmember[i].contact_id)
+    //    }
        let { _doc: userDetails } = userData;
       
        const taskList = {
