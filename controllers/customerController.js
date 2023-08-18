@@ -106,9 +106,9 @@ const addCustomer=async(req,res)=>{
                        
                     })
                         const sendMembers = await all.save()
-                        const groupCountData=await Group.findById({_id:req.body.group[i]})
-                           const count=groupCountData.count+1;
-                           const userData1= await Group.findByIdAndUpdate({_id:req.body.group[i]},{$set:{count:count}});
+                        // const groupCountData=await Group.findById({_id:req.body.group[i]})
+                        //    const count=groupCountData.count+1;
+                        //    const userData1= await Group.findByIdAndUpdate({_id:req.body.group[i]},{$set:{count:count}});
             }
         }
     })

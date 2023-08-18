@@ -228,8 +228,42 @@ const groupList=async(req,res)=>{
         .skip(startIndex)
         .limit(limit)
         .exec();
+        const permissionList = await Promise.all(
+            result.data?.map(async (lst) => {
+              let countTotal = await ContactGroup.find()
+                .exec()
+                .then(async(results)=>{
+                    for(i=0;i<results.length;i++)
+                    {
+                        
+                        if(results[i].group_id.equals(lst._id)){
+                         lst.count=lst.count+1   
+                        //  lst.members.push(results[i].contact_id)
+                        //  console.log(lst.members)
+                        // console.log(results[i].contact_id) 
+                        // console.log(results[i].group_id)
+                        // const userData1 =await Group.findByIdAndUpdate({ _id:results[i].group_id,is_deleted:0 }, { $set: { members:lst.members} });
+                        // }else{
+                        //     lst.members.push()
+                        }
+                       
+                    }
+                    
+                  
+                  
+                })
+              const {_doc: groupList} = lst;
+              
+              return {
+                ...groupList,
+               
+               
+              };
+            })
+          );
       result.rowsPerPage = limit;
-      return res.send({ msg: "Posts Fetched successfully", data: result});
+      let countTotal = await ContactGroup.find().countDocuments()
+      return res.send({ msg: "Posts Fetched successfully", data: { ...result,totalCount:countTotal}});
 
     }
 

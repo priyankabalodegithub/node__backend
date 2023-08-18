@@ -32,11 +32,13 @@ const storage=multer.diskStorage({
 
 const upload=multer({storage:storage});
 const adminController=require('../controllers/adminController');
+
 const jwtHelper=require('../config/jwtHelper')
 
-admin_route.post('/register',adminController.insertUser);
+// admin_route.post('/register',adminController.insertUser);
 
-admin_route.post('/login',adminController.verifyLogin);
+// admin_route.post('/login',adminController.verifyLogin);
+admin_route.get('/messageApi',adminController.simpleMessage);
 
 admin_route.get('/test',jwtHelper,function(req,res){
     res.status(200).send({success:true,msg:"authentication"})
