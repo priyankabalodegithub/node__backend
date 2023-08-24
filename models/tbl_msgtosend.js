@@ -5,7 +5,8 @@ const msgSendSchema=new mongoose.Schema({
         //  required:true
      },
      contact_id:{
-        type:mongoose.Schema.Types.ObjectId,ref:'Tbl_GroupContact',
+      //   type:mongoose.Schema.Types.ObjectId,ref:'Tbl_GroupContact',
+      type:mongoose.Schema.Types.ObjectId,ref:'Tbl_ContactManagement',
      }
 
   

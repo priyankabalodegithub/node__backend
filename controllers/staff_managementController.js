@@ -13,6 +13,7 @@ const nodemailer=require('nodemailer');
 const jwt=require('jsonwebtoken');
 const tbl_module = require('../models/tbl_module');
 const csv=require('csvtojson')
+const crypto=require('crypto')
 
 const create_token=async(id)=>{
   try{
@@ -97,8 +98,8 @@ const sendVerifyMail=async(email,password)=>{
    const mailOptions={
       from:'balodepriyanka0@gmail.com',
       to:email,
-      subject:'for verification mail',
-      html:'<p>Hii,<b>Email:-</b>'+email+'<br><b>Password:-'+password+'</b>'
+      subject:'Password Genetate',
+      html:'<p><b>Email:-</b>'+email+'<br><b>Password:-'+password+'</b>'
    }
    
    
@@ -123,21 +124,34 @@ const sendVerifyMail=async(email,password)=>{
 const addStaff = async (req, res) => {
   try {
     const rightData = await Right.find().exec();
-        // console.log(salesData);
-        const selectedPhase = rightData.find((data) => data._id.equals(req.body.title));
-    var n="MS";
-    const spassword=n+Math.round(Math.random() *999999)
+    // console.log(salesData);
+    const selectedPhase = rightData.find((data) => data._id.equals(req.body.title));
+    const length = 8;
+    const upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowerCase = "abcdefghijklmnopqrstuvwxyz";
+    const number = "0123456789";
+    const symbol = "@#$%^&*()_+~|}{[]></-=";
+
+    const generate=(
+      length=8,
+      wishlist='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$'
+  )=>
+  Array.from(crypto.randomFillSync(new Uint32Array(length)))
+  .map((x)=>wishlist[x%wishlist.length])
+  .join('')
+   const spassword=generate()
+      const sendmail = await sendVerifyMail(req.body.email, spassword);
+    const spasswords = await securePassword(spassword);
     const staff = new Staff({
-      first_name:req.body.first_name,
+      first_name: req.body.first_name,
       last_name: req.body.last_name,
-      // password:n+Math.round(Math.random() *999999),
-      password:spassword,
-      confirm_password:spassword,
+      password: spasswords,
+      confirm_password: spasswords,
       designation: req.body.designation,
-      primary_contact_number: req.body.primary_contact_number,
-      secondary_contact_number: req.body.secondary_contact_number,
+      primary_contact_number: "91"+ req.body.primary_contact_number,
+      secondary_contact_number:  "91"+req.body.secondary_contact_number,
       email: req.body.email,
-    
+
     });
     staff.save().then(async (userData) => {
       let permissionArray = [];
@@ -151,14 +165,14 @@ const addStaff = async (req, res) => {
                 right_detail: _permissionList.name,
                 staff_id: userData._id,
                 rights_id: childData._id,
-               
-              }; 
-              
+
+              };
+
             }
-            
+
           );
           // console.log(childPermission)
-         
+
 
           permissionArray = [...permissionArray, ...childPermission];
         });
@@ -167,7 +181,7 @@ const addStaff = async (req, res) => {
       const permissionData = await Permission.insertMany(permissionArray);
       // console.log("permissionData", permissionData);
       if (userData && permissionData) {
-        sendVerifyMail(req.body.email,userData.password,userData._id);
+        // sendVerifyMail(req.body.email,userData.password,userData._id);
         res.status(200).send({
           success: true,
           data: userData,
@@ -186,81 +200,85 @@ const addStaff = async (req, res) => {
 
 // verify  login
 
-const verifyLogin=async(req,res)=>{
-  try{
-      const email=req.body.email;
-      const password=req.body.password;
-      const userData=await Staff.findOne({email:email,is_deleted:0});
-      if(userData){
+const verifyLogin = async (req, res) => {
+  try {
+    const email = req.body.email;
+    const password = req.body.password;
+    const userData = await Staff.findOne({ email: email, is_deleted: 0 });
+    if (userData) {
+      
+      // //  const passwordMatch=await bcrypt.compare(password,userData.password);
 
-        //  const passwordMatch=await bcrypt.compare(password,userData.password);
+      //  if(password===userData.password)
+      const passwordMatch = await bcrypt.compare(password, userData.password);
 
-         if(password===userData.password)
-         {
+     
 
-          if(userData.user_type!=="user"&& userData.user_type!=="admin")
-          {
-              res.status(200).send({success:true,msg:"username and password is incorrect"})
-            
+      if (passwordMatch) {
+
+        if (userData.user_type !== "user" && userData.user_type !== "admin") {
+          res.status(200).send({ success: true, msg: "username and password is incorrect" })
+
+
+        }
+        else {
+
+          const tokenData = await create_token(userData._id);
+          let permission = await Permission.find({
+            staff_id: userData._id,
+            is_deleted: 0
+          })
+            // .populate("rights_id")
+            .populate({
+              path: "rights_id",
+              populate: {
+                path: "module_id",
+                model: "Tbl_Module",
+              },
+            })
+            .exec();
+
+          const userResult = {
+            _id: userData._id,
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            designation: userData.designation,
+            primary_contact_number: userData.primary_contact_number,
+            secondary_contact_number: userData.secondary_contact_number,
+            email: userData.email,
+            password: userData.password,
+            user_type: userData.user_type,
+            permission: permission,
+            token: tokenData
 
           }
-          else{
-              
-              const tokenData=await create_token(userData._id);
-              let permission = await Permission.find({
-                staff_id: userData._id,
-                is_deleted:0
-              })
-                // .populate("rights_id")
-                .populate({
-                  path: "rights_id",
-                  populate: {
-                    path: "module_id",
-                    model: "Tbl_Module",
-                  },
-                })
-                .exec();
 
-          const userResult={
-              _id:userData._id,
-              first_name:userData.first_name,
-              last_name:userData.last_name,
-              designation:userData.designation,
-              primary_contact_number:userData.primary_contact_number,
-              secondary_contact_number:userData.secondary_contact_number,
-              email:userData.email,
-              password:userData.password,
-              user_type:userData.user_type,
-              permission:permission,
-              token:tokenData
-
-          }
-
-          const response={
-              success:true,
-              msg:"user details",
-              data:userResult
+          const response = {
+            success: true,
+            msg: "user details",
+            data: userResult
           }
           res.status(200).send(response)
-              
-          }
 
-         }
-         else{
-          
-          res.status(200).send({msg:"username and password is incorrect"})
-         }
+        }
 
       }
-      else{
-          res.status(200).send({msg:"username and password is incorrects"})
+      else {
+
+        res.status(200).send({ msg: "username and password is incorrect" })
       }
+
+    }
+    else {
+      res.status(200).send({ msg: "username and password is incorrects" })
+    }
 
   }
-  catch(err){
-      res.status(400).send(err.message);
+  catch (err) {
+    res.status(400).send(err.message);
   }
 }
+
 
 // change password
 const change_password=async(req,res)=>{
@@ -268,13 +286,13 @@ const change_password=async(req,res)=>{
   const {old_password,new_password,confirm_password}=req.body;
   const id=req._id;
   const users=await Staff.findById(id);
- 
+  const oldpass=await bcrypt.compare(old_password,users.password);
   if(old_password==='' || new_password==='' || confirm_password==='')
   {
       res.status(200).send({success:true,msg:"All fields are required"})
   }
   else{
-  if(old_password===users.password)
+    if(oldpass)
   {
   
   if( new_password && confirm_password){
@@ -286,9 +304,9 @@ const change_password=async(req,res)=>{
       }
       else{
   
-          // const salt=await bcrypt.genSalt(10);
-          // const newHashPassword=await bcrypt.hash(new_password,salt);
-          await Staff.findByIdAndUpdate(req._id,{$set:{password:new_password}})
+        const salt=await bcrypt.genSalt(10);
+        const newHashPassword=await bcrypt.hash(new_password,salt);
+          await Staff.findByIdAndUpdate(req._id,{$set:{password:newHashPassword,confirm_password:newHashPassword}})
           res.status(200).send({success:true,msg:"password changed successfully"})
   
       }
@@ -323,7 +341,7 @@ const forgetPassword=async(req,res)=>{
      {
          if(userData.user_type==='')
           {
-            return  res.render('forget',{message:"Email is incoreect"});
+            return  res.render('forget',{message:"Email is incorrect"});
           }
           else
           {
@@ -360,7 +378,9 @@ const reset_password=async(req,res)=>{
         const password=req.body.password;
         const confirm_password=req.body.confirm_password;
         if(password===confirm_password){
-        const userData=await Staff.findByIdAndUpdate({_id:tokenData._id},{$set:{password:password,confirm_password:confirm_password,token:''}},{new:true});
+          const salt=await bcrypt.genSalt(10);
+        const resetHashPassword=await bcrypt.hash(password,salt);
+        const userData=await Staff.findByIdAndUpdate({_id:tokenData._id},{$set:{password:resetHashPassword,confirm_password:resetHashPassword,token:''}},{new:true});
         res.status(200).send({success:true,msg:"Your User Password has been reset",data:userData})
         }else{
           res.status(200).send({success:false,msg:"Password and Confirm password does not match"})
@@ -629,6 +649,7 @@ const staffList = async (req, res) => {
               });
             })
           });
+        
 
         let totalTask = await Task.find({
           assign_task_to: lst._id,
@@ -661,6 +682,7 @@ const staffList = async (req, res) => {
       msg: "Posts Fetched successfully",
       data: { ...result, data: permissionList,avrageRate:percentage},
     });
+    
   } catch (error) {
     console.log(error);
     return res.status(500).json({ msg: "Sorry, something went wrong" });

@@ -859,8 +859,12 @@ const updateNote = async (req, res) => {
     try {
         let _promise = Promise.resolve();
         _promise.then(async () => {
+            const historytaskid = await TaskHistory.find(
+                { task_id: req.params.id }
+            ).sort({_id:-1}).limit(1);
             await TaskHistory.findOneAndUpdate(
-                { "_id": req.body.task_history_id },               
+                // { "_id": req.body.task_history_id },  
+                {_id:historytaskid[0]._id},             
                 {
                     note:req.body.note,
                     is_completed:req.body.is_completed,
@@ -871,7 +875,8 @@ const updateNote = async (req, res) => {
             const updateHistory = await TaskHistory.find(
                 { task_id: req.params.id }
             );
-            console.log(updateHistory);
+            // console.log(updateHistory);
+           
             return {
                 // userData,
                 updateHistory

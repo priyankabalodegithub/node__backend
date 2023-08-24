@@ -3,6 +3,7 @@ const Message=require('../models/tbl_messages');
 const MsgSend=require('../models/tbl_msgtosend');
 const groupContact=require('../models/tbl_groupContact');
 const Template=require('../models/tbl_template');
+const _http=require('https')
 
 
 // add message for group
@@ -87,8 +88,10 @@ const sendMembers=async(req,res)=>{
                 
         })
             const userData=await message.save().then(async (userData) => {
+                var number=[]
+                var textMsg=[]
                if(userData.members.length>0){
-                for(var i=0; i< req.body.members.length;i++){
+                for(var i=0; i<req.body.members.length;i++){
                    
                  
                         const data = new MsgSend({
@@ -96,8 +99,22 @@ const sendMembers=async(req,res)=>{
                             contact_id:req.body.members[i]
                            
                         })
-                        const sendMembers = await data.save()
+                  
+                        const sendMembers = await (await data.save()).populate('contact_id msg_id')
+                        number.push(sendMembers.contact_id.primary_contact_number)
+                        textMsg.push(sendMembers.msg_id.message)
+                        // console.log(textMsg)
+                       
             }
+          
+        }
+        if(userData.is_send==1){
+        _http.request('https://whatzapi.orcainfosolutions.com/api/send-text.php?number='+number+'&msg='+textMsg+'&apikey=6c0c75abc9884de8d88ed9de0c55188066a4d976&instance=o2eaqrWXldO31Ag', {method: 'GET'}, function(res) {
+         
+            res.on('data', function (chunk) {
+            //   console.log('BODY: ' + chunk);
+            });
+          }).end();
         }
             });
 

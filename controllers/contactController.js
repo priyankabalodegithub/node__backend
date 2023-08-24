@@ -61,8 +61,8 @@ const addContact = async (req, res) => {
             last_name: req.body.last_name,
             designation: req.body.designation,
             company_name: req.body.company_name,
-            primary_contact_number: req.body.primary_contact_number,
-            secondary_contact_number: req.body.secondary_contact_number,
+            primary_contact_number: "91"+req.body.primary_contact_number,
+            secondary_contact_number: "91"+req.body.secondary_contact_number,
             email: req.body.email,
             group: req.body.group,
             contact_source:req.body.contact_source,
@@ -229,7 +229,7 @@ const contactList = async (req, res) => {
         }
         const query = {};
 
-        query.type = 'contact';
+        query.type = { "$regex":"contact", "$options": 'i' };
         query.is_deleted = 0;
         if (groupFilters.length > 0) {
             query.group = { $in: groupFilters }
